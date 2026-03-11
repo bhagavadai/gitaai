@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build
+.next/
+out/
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Data (large files)
+data/raw/*.json
+data/raw/*.csv
+data/raw/*.txt
+!data/raw/.gitkeep
+
+# Database
+*.db
+*.sqlite3
+neo4j/data/
+
+# Misc
+.vercel
+.turbo
+*.tsbuildinfo

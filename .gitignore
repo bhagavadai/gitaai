@@ -46,6 +46,7 @@ data/raw/*.txt
 *.db
 *.sqlite3
 neo4j/data/
+data/chroma/
 
 # Misc
 .vercel

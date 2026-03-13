@@ -33,7 +33,8 @@ def build_documents(
     """Build ChromaDB documents by combining verse text with English translations."""
     chapter_names = {ch["chapter_number"]: ch["name_meaning"] for ch in chapters}
 
-    # Group English translations by verse_number
+    # Translations use a global sequential verse_number (1-701),
+    # NOT chapter-specific numbering. Group by this sequential ID.
     eng_translations: dict[int, list[dict]] = {}
     for t in translations:
         if t["language"] == "english":
@@ -43,9 +44,10 @@ def build_documents(
     ids = []
     metadatas = []
 
-    for verse in verses:
+    for seq_index, verse in enumerate(verses):
+        # seq_index+1 maps to the global sequential verse_number in translations
         vnum = verse["verse_number"]
-        verse_translations = eng_translations.get(vnum, [])
+        verse_translations = eng_translations.get(seq_index + 1, [])
 
         # Pick the first available English translation
         translation_text = ""

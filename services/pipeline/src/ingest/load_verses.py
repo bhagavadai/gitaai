@@ -34,11 +34,14 @@ def build_documents(
     chapter_names = {ch["chapter_number"]: ch["name_meaning"] for ch in chapters}
 
     # Translations use a global sequential verse_number (1-701),
-    # NOT chapter-specific numbering. Group by this sequential ID.
-    eng_translations: dict[int, list[dict]] = {}
+    # NOT chapter-specific numbering. Group by language and sequential ID.
+    translations_by_lang: dict[str, dict[int, list[dict]]] = {}
     for t in translations:
-        if t["language"] == "english":
-            eng_translations.setdefault(t["verse_number"], []).append(t)
+        lang = t["language"]
+        translations_by_lang.setdefault(lang, {}).setdefault(t["verse_number"], []).append(t)
+
+    eng_translations = translations_by_lang.get("english", {})
+    hindi_translations = translations_by_lang.get("hindi", {})
 
     documents = []
     ids = []
@@ -46,18 +49,20 @@ def build_documents(
 
     for seq_index, verse in enumerate(verses):
         # seq_index+1 maps to the global sequential verse_number in translations
+        seq_num = seq_index + 1
         vnum = verse["verse_number"]
-        verse_translations = eng_translations.get(seq_index + 1, [])
 
-        # Pick the first available English translation
-        translation_text = ""
-        translator = ""
-        if verse_translations:
-            best = verse_translations[0]
-            translation_text = best["text"]
-            translator = best["author"]
+        # Pick English translation
+        eng_list = eng_translations.get(seq_num, [])
+        translation_text = eng_list[0]["text"] if eng_list else ""
+        translator = eng_list[0]["author"] if eng_list else ""
 
-        # Compose a rich document for embedding
+        # Pick Hindi translation
+        hindi_list = hindi_translations.get(seq_num, [])
+        translation_hindi = hindi_list[0]["text"] if hindi_list else ""
+        translator_hindi = hindi_list[0]["author"] if hindi_list else ""
+
+        # Compose a rich document for embedding (English + Hindi for better retrieval)
         chapter_name = chapter_names.get(verse["chapter_number"], "")
         doc_parts = []
 
@@ -66,6 +71,9 @@ def build_documents(
 
         if translation_text:
             doc_parts.append(f"Translation: {translation_text}")
+
+        if translation_hindi:
+            doc_parts.append(f"Hindi: {translation_hindi}")
 
         if verse["transliteration"]:
             doc_parts.append(f"Transliteration: {verse['transliteration']}")
@@ -82,6 +90,8 @@ def build_documents(
             "transliteration": verse["transliteration"],
             "translation": translation_text,
             "translator": translator,
+            "translation_hindi": translation_hindi,
+            "translator_hindi": translator_hindi,
             "chapter_name": chapter_name,
             "verse_id": verse["id"],
         })

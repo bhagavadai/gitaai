@@ -59,7 +59,7 @@ GitaAI is an open-source AI chat interface grounded in the Bhagavad Gita and Ved
 | Embeddings | Voyage AI |
 | Database | PostgreSQL (users, sessions, analytics) |
 | Testing | Vitest (TS), Pytest (Python) |
-| Package Manager | pnpm (frontend), uv (Python) |
+| Package Manager | npm (frontend), uv or pip (Python) |
 
 ## Code Style
 

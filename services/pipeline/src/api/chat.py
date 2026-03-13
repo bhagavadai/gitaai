@@ -1,6 +1,7 @@
 """Chat endpoint: retrieve relevant verses and generate answer with Claude."""
 
-import os
+from __future__ import annotations
+
 from typing import AsyncGenerator
 
 import anthropic
@@ -8,9 +9,21 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from ..config import settings
 from ..retrieval.vector_search import search_verses
 
 router = APIRouter()
+
+
+def get_client():
+    """Create the appropriate Anthropic client based on config."""
+    if settings.llm_provider == "bedrock":
+        kwargs = {"aws_region": settings.aws_region}
+        if settings.aws_access_key_id:
+            kwargs["aws_access_key"] = settings.aws_access_key_id
+            kwargs["aws_secret_key"] = settings.aws_secret_access_key
+        return anthropic.AnthropicBedrock(**kwargs)
+    return anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
 SYSTEM_PROMPT = """You are GitaAI, a wise and knowledgeable guide to the Bhagavad Gita and Vedic philosophy.
 
@@ -68,7 +81,7 @@ def format_context(verses: list[dict]) -> str:
 
 async def generate_stream(message: str, verses: list[dict]) -> AsyncGenerator[str, None]:
     """Stream the LLM response."""
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+    client = get_client()
 
     context = format_context(verses)
     user_message = (
@@ -77,11 +90,11 @@ async def generate_stream(message: str, verses: list[dict]) -> AsyncGenerator[st
     )
 
     with client.messages.stream(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2048,
+        model=settings.model_name,
+        max_tokens=settings.max_tokens,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
-        temperature=0.2,
+        temperature=settings.temperature,
     ) as stream:
         for text in stream.text_stream:
             yield text
@@ -109,7 +122,7 @@ async def chat_sync(request: ChatRequest):
     """Non-streaming version for testing."""
     verses = search_verses(request.message, n_results=request.n_verses)
 
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+    client = get_client()
 
     context = format_context(verses)
     user_message = (
@@ -118,11 +131,11 @@ async def chat_sync(request: ChatRequest):
     )
 
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2048,
+        model=settings.model_name,
+        max_tokens=settings.max_tokens,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
-        temperature=0.2,
+        temperature=settings.temperature,
     )
 
     return ChatResponse(

@@ -42,6 +42,8 @@ def search_verses(query: str, n_results: int = 5) -> list[dict]:
             "transliteration": meta["transliteration"],
             "translation": meta["translation"],
             "translator": meta["translator"],
+            "translation_hindi": meta.get("translation_hindi", ""),
+            "translator_hindi": meta.get("translator_hindi", ""),
             "chapter_name": meta["chapter_name"],
             "relevance_rank": i + 1,
         })

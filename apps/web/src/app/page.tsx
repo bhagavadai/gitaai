@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 
 const PIPELINE_URL = process.env.NEXT_PUBLIC_PIPELINE_URL || "http://localhost:8000";
 
+type Language = "en" | "hi" | "auto";
+
 interface Verse {
   verse_id: string;
   chapter_number: number;
@@ -12,6 +14,8 @@ interface Verse {
   transliteration: string;
   translation: string;
   translator: string;
+  translation_hindi?: string;
+  translator_hindi?: string;
   chapter_name: string;
 }
 
@@ -19,10 +23,17 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   verses?: Verse[];
+  language?: string;
 }
 
-function VerseCard({ verse }: { verse: Verse }) {
+function VerseCard({ verse, language }: { verse: Verse; language: string }) {
   const [expanded, setExpanded] = useState(false);
+
+  const showHindi = language === "hi" && verse.translation_hindi;
+  const translation = showHindi ? verse.translation_hindi! : verse.translation;
+  const translator = showHindi
+    ? verse.translator_hindi || verse.translator
+    : verse.translator;
 
   return (
     <button
@@ -54,7 +65,12 @@ function VerseCard({ verse }: { verse: Verse }) {
       </div>
       {expanded && (
         <div className="mt-2 space-y-2" style={{ color: "var(--foreground)" }}>
-          <p>{verse.translation}</p>
+          <p>{translation}</p>
+          {showHindi && verse.translation && (
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              English: {verse.translation}
+            </p>
+          )}
           <p className="italic text-xs" style={{ color: "var(--muted)" }}>
             {verse.transliteration}
           </p>
@@ -65,7 +81,7 @@ function VerseCard({ verse }: { verse: Verse }) {
             {verse.sanskrit}
           </p>
           <p className="text-xs" style={{ color: "var(--muted)" }}>
-            Translation by {verse.translator}
+            {language === "hi" ? "अनुवाद:" : "Translation by"} {translator}
           </p>
         </div>
       )}
@@ -73,10 +89,21 @@ function VerseCard({ verse }: { verse: Verse }) {
   );
 }
 
-function SourcesSection({ verses }: { verses: Verse[] }) {
+function SourcesSection({
+  verses,
+  language,
+}: {
+  verses: Verse[];
+  language: string;
+}) {
   const [open, setOpen] = useState(false);
 
   if (!verses.length) return null;
+
+  const label =
+    language === "hi"
+      ? `गीता से ${verses.length} श्लोक`
+      : `${verses.length} verse${verses.length > 1 ? "s" : ""} from the Gita`;
 
   return (
     <div className="mt-3">
@@ -91,12 +118,12 @@ function SourcesSection({ verses }: { verses: Verse[] }) {
         >
           ▼
         </span>
-        {verses.length} verse{verses.length > 1 ? "s" : ""} from the Gita
+        {label}
       </button>
       {open && (
         <div className="mt-2 space-y-2">
           {verses.map((verse) => (
-            <VerseCard key={verse.verse_id} verse={verse} />
+            <VerseCard key={verse.verse_id} verse={verse} language={language} />
           ))}
         </div>
       )}
@@ -106,6 +133,7 @@ function SourcesSection({ verses }: { verses: Verse[] }) {
 
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
+  const language = message.language || "en";
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4`}>
@@ -122,28 +150,68 @@ function MessageBubble({ message }: { message: Message }) {
         >
           <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
         </div>
-        {message.verses && <SourcesSection verses={message.verses} />}
+        {message.verses && (
+          <SourcesSection verses={message.verses} language={language} />
+        )}
       </div>
     </div>
   );
 }
 
-const SUGGESTIONS = [
+function LanguageToggle({
+  language,
+  onChange,
+}: {
+  language: Language;
+  onChange: (lang: Language) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 text-xs">
+      {(["auto", "en", "hi"] as Language[]).map((lang) => (
+        <button
+          key={lang}
+          onClick={() => onChange(lang)}
+          className="px-2 py-1 rounded-md transition-colors"
+          style={{
+            background: language === lang ? "var(--accent)" : "transparent",
+            color: language === lang ? "#fff" : "var(--muted)",
+            border:
+              language === lang ? "none" : "1px solid var(--border)",
+          }}
+        >
+          {lang === "auto" ? "Auto" : lang === "en" ? "EN" : "हिंदी"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const SUGGESTIONS_EN = [
   "What does Krishna say about the nature of the soul?",
   "How can I overcome fear and anxiety?",
   "What is Nishkama Karma?",
   "What is the path to inner peace?",
 ];
 
+const SUGGESTIONS_HI = [
+  "कृष्ण आत्मा के बारे में क्या कहते हैं?",
+  "मैं अपने डर और चिंता को कैसे दूर करूं?",
+  "निष्काम कर्म क्या है?",
+  "मन की शांति का मार्ग क्या है?",
+];
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [language, setLanguage] = useState<Language>("auto");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const suggestions = language === "hi" ? SUGGESTIONS_HI : SUGGESTIONS_EN;
 
   async function handleSubmit(text?: string) {
     const message = text || input.trim();
@@ -158,7 +226,7 @@ export default function Home() {
       const response = await fetch(`${PIPELINE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, language }),
       });
 
       if (!response.ok) throw new Error("Failed to get response");
@@ -168,6 +236,7 @@ export default function Home() {
 
       const decoder = new TextDecoder();
       let verses: Verse[] = [];
+      let detectedLang = "en";
       let answerText = "";
       let firstLine = true;
 
@@ -187,6 +256,7 @@ export default function Home() {
             try {
               const parsed = JSON.parse(jsonLine);
               verses = parsed.verses || [];
+              detectedLang = parsed.language || "en";
             } catch {
               answerText += chunk;
             }
@@ -205,6 +275,7 @@ export default function Home() {
             role: "assistant",
             content: answerText,
             verses,
+            language: detectedLang,
           };
           return updated;
         });
@@ -215,7 +286,9 @@ export default function Home() {
         {
           role: "assistant",
           content:
-            "I apologize, but I encountered an error. Please ensure the backend is running (uvicorn services.pipeline.src.api.main:app --reload) and try again.",
+            language === "hi"
+              ? "क्षमा करें, एक त्रुटि हुई। कृपया सुनिश्चित करें कि बैकएंड चल रहा है और पुनः प्रयास करें।"
+              : "I apologize, but I encountered an error. Please ensure the backend is running and try again.",
         },
       ]);
     } finally {
@@ -227,15 +300,21 @@ export default function Home() {
     <div className="flex flex-col h-screen max-w-3xl mx-auto">
       {/* Header */}
       <header
-        className="text-center py-6 px-4"
+        className="flex items-center justify-between py-4 px-4"
         style={{ borderBottom: "1px solid var(--border)" }}
       >
-        <h1 className="text-2xl font-bold" style={{ color: "var(--accent)" }}>
-          GitaAI
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-          Wisdom from the Bhagavad Gita, grounded in scripture
-        </p>
+        <div />
+        <div className="text-center">
+          <h1 className="text-2xl font-bold" style={{ color: "var(--accent)" }}>
+            GitaAI
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+            {language === "hi"
+              ? "भगवद्गीता का ज्ञान, शास्त्र पर आधारित"
+              : "Wisdom from the Bhagavad Gita, grounded in scripture"}
+          </p>
+        </div>
+        <LanguageToggle language={language} onChange={setLanguage} />
       </header>
 
       {/* Messages */}
@@ -244,14 +323,18 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center h-full space-y-6">
             <div className="text-center space-y-2">
               <p className="text-lg" style={{ color: "var(--foreground)" }}>
-                Ask a question about the Bhagavad Gita
+                {language === "hi"
+                  ? "भगवद्गीता के बारे में कोई प्रश्न पूछें"
+                  : "Ask a question about the Bhagavad Gita"}
               </p>
               <p className="text-sm" style={{ color: "var(--muted)" }}>
-                Every answer is grounded in actual verses with citations
+                {language === "hi"
+                  ? "हर उत्तर वास्तविक श्लोकों पर आधारित है"
+                  : "Every answer is grounded in actual verses with citations"}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-              {SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => handleSubmit(s)}
@@ -316,7 +399,11 @@ export default function Home() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about the Gita..."
+            placeholder={
+              language === "hi"
+                ? "गीता के बारे में पूछें..."
+                : "Ask about the Gita..."
+            }
             className="flex-1 rounded-xl px-4 py-3 outline-none transition-colors"
             style={{
               background: "var(--card)",
@@ -331,14 +418,16 @@ export default function Home() {
             className="rounded-xl px-6 py-3 font-medium transition-opacity disabled:opacity-50"
             style={{ background: "var(--accent)", color: "#fff" }}
           >
-            Ask
+            {language === "hi" ? "पूछें" : "Ask"}
           </button>
         </form>
         <p
           className="text-center text-xs mt-2"
           style={{ color: "var(--muted)" }}
         >
-          Answers are AI-generated. Always verify with the original texts.
+          {language === "hi"
+            ? "उत्तर AI द्वारा उत्पन्न हैं। मूल ग्रंथों से सत्यापित करें।"
+            : "Answers are AI-generated. Always verify with the original texts."}
         </p>
       </footer>
     </div>

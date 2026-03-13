@@ -33,25 +33,74 @@ function VerseCard({ verse }: { verse: Verse }) {
         border: "1px solid var(--border)",
       }}
     >
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-center">
         <span className="font-semibold" style={{ color: "var(--accent)" }}>
           BG {verse.chapter_number}.{verse.verse_number}
         </span>
-        <span className="text-xs" style={{ color: "var(--muted)" }}>
-          {verse.chapter_name}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
+            {verse.chapter_name}
+          </span>
+          <span
+            className="text-xs transition-transform"
+            style={{
+              color: "var(--muted)",
+              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          >
+            ▼
+          </span>
+        </div>
       </div>
-      <p className="mt-1" style={{ color: "var(--foreground)" }}>
-        {verse.translation}
-      </p>
       {expanded && (
-        <div className="mt-2 space-y-1" style={{ color: "var(--muted)" }}>
-          <p className="italic">{verse.transliteration}</p>
-          <p className="text-xs font-mono whitespace-pre-line">{verse.sanskrit}</p>
-          <p className="text-xs">Translation by {verse.translator}</p>
+        <div className="mt-2 space-y-2" style={{ color: "var(--foreground)" }}>
+          <p>{verse.translation}</p>
+          <p className="italic text-xs" style={{ color: "var(--muted)" }}>
+            {verse.transliteration}
+          </p>
+          <p
+            className="text-xs font-mono whitespace-pre-line"
+            style={{ color: "var(--muted)" }}
+          >
+            {verse.sanskrit}
+          </p>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>
+            Translation by {verse.translator}
+          </p>
         </div>
       )}
     </button>
+  );
+}
+
+function SourcesSection({ verses }: { verses: Verse[] }) {
+  const [open, setOpen] = useState(false);
+
+  if (!verses.length) return null;
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs font-medium px-1 transition-colors hover:opacity-80"
+        style={{ color: "var(--muted)" }}
+      >
+        <span
+          className="transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
+          ▼
+        </span>
+        {verses.length} verse{verses.length > 1 ? "s" : ""} from the Gita
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2">
+          {verses.map((verse) => (
+            <VerseCard key={verse.verse_id} verse={verse} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -73,16 +122,7 @@ function MessageBubble({ message }: { message: Message }) {
         >
           <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
         </div>
-        {message.verses && message.verses.length > 0 && (
-          <div className="mt-2 space-y-2">
-            <p className="text-xs font-semibold px-1" style={{ color: "var(--muted)" }}>
-              Referenced Verses (click to expand)
-            </p>
-            {message.verses.map((verse) => (
-              <VerseCard key={verse.verse_id} verse={verse} />
-            ))}
-          </div>
-        )}
+        {message.verses && <SourcesSection verses={message.verses} />}
       </div>
     </div>
   );

@@ -94,6 +94,7 @@ GitaAI is an open-source AI chat interface grounded in the Bhagavad Gita and Ved
 
 ### Commits
 - **Atomic commits** — each commit does ONE thing and the project builds/passes tests at every commit
+- **Commit as you go** — commit immediately after completing each logical unit of work (e.g., after setting up infrastructure, after writing a new module, after integrating it). Do NOT batch all changes into commits at the end. Each step should be committed before moving to the next.
 - Use conventional commits format:
   ```
   type(scope): short description
@@ -180,10 +181,14 @@ gitaai/
 - Log token usage for cost monitoring
 - Implement rate limiting on API routes
 
+## Learnings & Pitfalls
+
+Before implementing, read `docs/LEARNINGS.md` — it captures past bugs, debugging insights, and design decisions so we don't repeat mistakes. Update it when you encounter new issues worth remembering.
+
 ## When in Doubt
 
 1. Read the existing code first
-2. Check `docs/` for design decisions
+2. Check `docs/` for design decisions and `docs/LEARNINGS.md` for past pitfalls
 3. Keep changes small and reversible
 4. Ask the user rather than guessing
 5. Prioritize correctness over cleverness

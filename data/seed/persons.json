@@ -1,0 +1,34 @@
+[
+  {
+    "id": "krishna",
+    "name": "Krishna",
+    "sanskrit_name": "कृष्ण",
+    "role": "teacher",
+    "description": "The Supreme Lord who serves as Arjuna's charioteer and spiritual guide, revealing the wisdom of the Gita",
+    "description_hindi": "परमेश्वर जो अर्जुन के सारथी और आध्यात्मिक गुरु के रूप में गीता का ज्ञान प्रकट करते हैं"
+  },
+  {
+    "id": "arjuna",
+    "name": "Arjuna",
+    "sanskrit_name": "अर्जुन",
+    "role": "student",
+    "description": "The mighty Pandava warrior who, faced with moral crisis on the battlefield, receives Krishna's teachings",
+    "description_hindi": "महान पांडव योद्धा जो युद्धभूमि में नैतिक संकट का सामना करते हुए कृष्ण की शिक्षा प्राप्त करते हैं"
+  },
+  {
+    "id": "sanjaya",
+    "name": "Sanjaya",
+    "sanskrit_name": "संजय",
+    "role": "narrator",
+    "description": "The minister blessed with divine sight who narrates the events of the battlefield to King Dhritarashtra",
+    "description_hindi": "दिव्य दृष्टि से सम्पन्न मंत्री जो राजा धृतराष्ट्र को युद्धभूमि की घटनाओं का वर्णन करते हैं"
+  },
+  {
+    "id": "dhritarashtra",
+    "name": "Dhritarashtra",
+    "sanskrit_name": "धृतराष्ट्र",
+    "role": "questioner",
+    "description": "The blind king of the Kauravas who asks Sanjaya about the events on the battlefield of Kurukshetra",
+    "description_hindi": "कौरवों के अंधे राजा जो संजय से कुरुक्षेत्र की युद्धभूमि की घटनाओं के बारे में पूछते हैं"
+  }
+]

@@ -19,10 +19,21 @@ interface Verse {
   chapter_name: string;
 }
 
+interface Concept {
+  id: string;
+  name: string;
+  sanskrit_term: string;
+  category: string;
+  description: string;
+  description_hindi?: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
   verses?: Verse[];
+  concepts?: Concept[];
+  relatedConcepts?: Concept[];
   language?: string;
 }
 
@@ -131,6 +142,76 @@ function SourcesSection({
   );
 }
 
+function ConceptsSection({
+  concepts,
+  relatedConcepts,
+  language,
+}: {
+  concepts: Concept[];
+  relatedConcepts: Concept[];
+  language: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  if (!concepts.length && !relatedConcepts.length) return null;
+
+  const label =
+    language === "hi"
+      ? `${concepts.length} संबंधित अवधारणाएँ`
+      : `${concepts.length} related concept${concepts.length !== 1 ? "s" : ""}`;
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs font-medium px-1 transition-colors hover:opacity-80"
+        style={{ color: "var(--muted)" }}
+      >
+        <span
+          className="transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+        >
+          ▼
+        </span>
+        {label}
+      </button>
+      {open && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {concepts.map((c) => (
+            <span
+              key={c.id}
+              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium"
+              style={{
+                background: "var(--accent)",
+                color: "#fff",
+              }}
+              title={language === "hi" && c.description_hindi ? c.description_hindi : c.description}
+            >
+              {c.name}
+              <span className="opacity-75">{c.sanskrit_term}</span>
+            </span>
+          ))}
+          {relatedConcepts.map((c) => (
+            <span
+              key={c.id}
+              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs"
+              style={{
+                background: "var(--accent-light)",
+                color: "var(--foreground)",
+                border: "1px solid var(--border)",
+              }}
+              title={language === "hi" && c.description_hindi ? c.description_hindi : c.description}
+            >
+              {c.name}
+              <span style={{ color: "var(--muted)" }}>{c.sanskrit_term}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
   const language = message.language || "en";
@@ -150,6 +231,13 @@ function MessageBubble({ message }: { message: Message }) {
         >
           <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
         </div>
+        {message.concepts && message.concepts.length > 0 && (
+          <ConceptsSection
+            concepts={message.concepts}
+            relatedConcepts={message.relatedConcepts || []}
+            language={language}
+          />
+        )}
         {message.verses && (
           <SourcesSection verses={message.verses} language={language} />
         )}
@@ -236,6 +324,8 @@ export default function Home() {
 
       const decoder = new TextDecoder();
       let verses: Verse[] = [];
+      let concepts: Concept[] = [];
+      let relatedConcepts: Concept[] = [];
       let detectedLang = "en";
       let answerText = "";
       let firstLine = true;
@@ -256,6 +346,8 @@ export default function Home() {
             try {
               const parsed = JSON.parse(jsonLine);
               verses = parsed.verses || [];
+              concepts = parsed.concepts || [];
+              relatedConcepts = parsed.related_concepts || [];
               detectedLang = parsed.language || "en";
             } catch {
               answerText += chunk;
@@ -275,6 +367,8 @@ export default function Home() {
             role: "assistant",
             content: answerText,
             verses,
+            concepts,
+            relatedConcepts,
             language: detectedLang,
           };
           return updated;

@@ -1,0 +1,298 @@
+[
+  {
+    "id": "karma",
+    "name": "Karma",
+    "sanskrit_term": "कर्म",
+    "category": "core_teaching",
+    "description": "Action and its consequences; the law of cause and effect that governs all actions",
+    "description_hindi": "कर्म और उसके फल; सभी कार्यों को नियंत्रित करने वाला कारण और प्रभाव का नियम"
+  },
+  {
+    "id": "karma_yoga",
+    "name": "Karma Yoga",
+    "sanskrit_term": "कर्मयोग",
+    "category": "yoga_path",
+    "description": "The path of selfless action; performing one's duty without attachment to results",
+    "description_hindi": "निष्काम कर्म का मार्ग; फल की आसक्ति के बिना अपने कर्तव्य का पालन"
+  },
+  {
+    "id": "nishkama_karma",
+    "name": "Nishkama Karma",
+    "sanskrit_term": "निष्काम कर्म",
+    "category": "core_teaching",
+    "description": "Desireless action; performing duty without selfish desire for the fruits of action",
+    "description_hindi": "इच्छारहित कर्म; कर्मफल की स्वार्थी इच्छा के बिना कर्तव्य का पालन"
+  },
+  {
+    "id": "dharma",
+    "name": "Dharma",
+    "sanskrit_term": "धर्म",
+    "category": "core_teaching",
+    "description": "Righteous duty; the moral and cosmic order that sustains the universe",
+    "description_hindi": "धार्मिक कर्तव्य; नैतिक और ब्रह्मांडीय व्यवस्था जो संसार को धारण करती है"
+  },
+  {
+    "id": "atman",
+    "name": "Atman",
+    "sanskrit_term": "आत्मन्",
+    "category": "metaphysics",
+    "description": "The eternal self or soul; the true essence of every being, indestructible and beyond birth and death",
+    "description_hindi": "शाश्वत आत्मा; प्रत्येक प्राणी का सच्चा सार, अविनाशी और जन्म-मृत्यु से परे"
+  },
+  {
+    "id": "brahman",
+    "name": "Brahman",
+    "sanskrit_term": "ब्रह्मन्",
+    "category": "metaphysics",
+    "description": "The ultimate reality; the supreme, all-pervading cosmic consciousness",
+    "description_hindi": "परम सत्य; सर्वव्यापी ब्रह्मांडीय चेतना"
+  },
+  {
+    "id": "yoga",
+    "name": "Yoga",
+    "sanskrit_term": "योग",
+    "category": "practice",
+    "description": "Union with the divine; discipline and practice that connects the individual self with the supreme",
+    "description_hindi": "ईश्वर के साथ मिलन; अनुशासन और अभ्यास जो व्यक्तिगत आत्मा को परमात्मा से जोड़ता है"
+  },
+  {
+    "id": "bhakti",
+    "name": "Bhakti",
+    "sanskrit_term": "भक्ति",
+    "category": "yoga_path",
+    "description": "Devotion and loving surrender to God; the path of the heart",
+    "description_hindi": "भगवान के प्रति प्रेम और समर्पण; हृदय का मार्ग"
+  },
+  {
+    "id": "bhakti_yoga",
+    "name": "Bhakti Yoga",
+    "sanskrit_term": "भक्तियोग",
+    "category": "yoga_path",
+    "description": "The path of devotion; attaining liberation through loving devotion to God",
+    "description_hindi": "भक्ति का मार्ग; भगवान के प्रति प्रेमपूर्ण भक्ति से मुक्ति की प्राप्ति"
+  },
+  {
+    "id": "jnana",
+    "name": "Jnana",
+    "sanskrit_term": "ज्ञान",
+    "category": "yoga_path",
+    "description": "Spiritual knowledge and wisdom; direct knowledge of the self and reality",
+    "description_hindi": "आध्यात्मिक ज्ञान; आत्मा और वास्तविकता का प्रत्यक्ष ज्ञान"
+  },
+  {
+    "id": "jnana_yoga",
+    "name": "Jnana Yoga",
+    "sanskrit_term": "ज्ञानयोग",
+    "category": "yoga_path",
+    "description": "The path of knowledge; attaining liberation through discernment and wisdom",
+    "description_hindi": "ज्ञान का मार्ग; विवेक और बुद्धि से मुक्ति की प्राप्ति"
+  },
+  {
+    "id": "dhyana",
+    "name": "Dhyana",
+    "sanskrit_term": "ध्यान",
+    "category": "practice",
+    "description": "Meditation; focused concentration leading to inner stillness and self-realization",
+    "description_hindi": "ध्यान; एकाग्र चित्त जो आंतरिक शांति और आत्म-साक्षात्कार की ओर ले जाता है"
+  },
+  {
+    "id": "dhyana_yoga",
+    "name": "Dhyana Yoga",
+    "sanskrit_term": "ध्यानयोग",
+    "category": "yoga_path",
+    "description": "The path of meditation; attaining self-realization through disciplined meditation",
+    "description_hindi": "ध्यान का मार्ग; अनुशासित ध्यान से आत्म-साक्षात्कार की प्राप्ति"
+  },
+  {
+    "id": "moksha",
+    "name": "Moksha",
+    "sanskrit_term": "मोक्ष",
+    "category": "goal",
+    "description": "Liberation from the cycle of birth and death; the ultimate spiritual goal",
+    "description_hindi": "जन्म-मृत्यु के चक्र से मुक्ति; परम आध्यात्मिक लक्ष्य"
+  },
+  {
+    "id": "samsara",
+    "name": "Samsara",
+    "sanskrit_term": "संसार",
+    "category": "metaphysics",
+    "description": "The cycle of birth, death, and rebirth; worldly existence driven by karma",
+    "description_hindi": "जन्म, मृत्यु और पुनर्जन्म का चक्र; कर्म से संचालित सांसारिक अस्तित्व"
+  },
+  {
+    "id": "maya",
+    "name": "Maya",
+    "sanskrit_term": "माया",
+    "category": "metaphysics",
+    "description": "Illusion; the power that creates the appearance of the material world and veils the true self",
+    "description_hindi": "भ्रम; वह शक्ति जो भौतिक जगत का आभास उत्पन्न करती है और सच्चे स्वरूप को ढकती है"
+  },
+  {
+    "id": "prakriti",
+    "name": "Prakriti",
+    "sanskrit_term": "प्रकृति",
+    "category": "metaphysics",
+    "description": "Material nature; the primal matter from which the physical universe evolves",
+    "description_hindi": "भौतिक प्रकृति; वह मूल तत्व जिससे भौतिक संसार का विकास होता है"
+  },
+  {
+    "id": "purusha",
+    "name": "Purusha",
+    "sanskrit_term": "पुरुष",
+    "category": "metaphysics",
+    "description": "The supreme spirit or consciousness; the eternal witness distinct from material nature",
+    "description_hindi": "परम आत्मा या चेतना; प्रकृति से भिन्न शाश्वत साक्षी"
+  },
+  {
+    "id": "gunas",
+    "name": "Gunas",
+    "sanskrit_term": "गुण",
+    "category": "metaphysics",
+    "description": "The three qualities of material nature: sattva (goodness), rajas (passion), tamas (ignorance)",
+    "description_hindi": "प्रकृति के तीन गुण: सत्व (अच्छाई), रजस (जुनून), तमस (अज्ञान)"
+  },
+  {
+    "id": "sattva",
+    "name": "Sattva",
+    "sanskrit_term": "सत्व",
+    "category": "metaphysics",
+    "description": "The quality of goodness, purity, harmony, and knowledge",
+    "description_hindi": "अच्छाई, पवित्रता, सामंजस्य और ज्ञान का गुण"
+  },
+  {
+    "id": "rajas",
+    "name": "Rajas",
+    "sanskrit_term": "रजस्",
+    "category": "metaphysics",
+    "description": "The quality of passion, activity, restlessness, and desire",
+    "description_hindi": "जुनून, सक्रियता, बेचैनी और इच्छा का गुण"
+  },
+  {
+    "id": "tamas",
+    "name": "Tamas",
+    "sanskrit_term": "तमस्",
+    "category": "metaphysics",
+    "description": "The quality of darkness, inertia, ignorance, and delusion",
+    "description_hindi": "अंधकार, जड़ता, अज्ञान और भ्रम का गुण"
+  },
+  {
+    "id": "sankhya",
+    "name": "Sankhya",
+    "sanskrit_term": "सांख्य",
+    "category": "philosophy",
+    "description": "The path of analytical knowledge; discrimination between the self and the non-self",
+    "description_hindi": "विश्लेषणात्मक ज्ञान का मार्ग; आत्मा और अनात्मा के बीच विवेक"
+  },
+  {
+    "id": "vairagya",
+    "name": "Vairagya",
+    "sanskrit_term": "वैराग्य",
+    "category": "practice",
+    "description": "Detachment and dispassion; freedom from attachment to worldly objects and outcomes",
+    "description_hindi": "वैराग्य; सांसारिक वस्तुओं और परिणामों से आसक्ति से मुक्ति"
+  },
+  {
+    "id": "sthitaprajna",
+    "name": "Sthitaprajna",
+    "sanskrit_term": "स्थितप्रज्ञ",
+    "category": "ideal",
+    "description": "One of steady wisdom; a person established in equanimity and unshaken by pleasure or pain",
+    "description_hindi": "स्थिर बुद्धि वाला; समता में स्थित और सुख-दुख से अविचलित व्यक्ति"
+  },
+  {
+    "id": "shraddha",
+    "name": "Shraddha",
+    "sanskrit_term": "श्रद्धा",
+    "category": "practice",
+    "description": "Faith; deep trust and conviction in the teachings and in the divine",
+    "description_hindi": "श्रद्धा; शिक्षाओं और ईश्वर में गहरा विश्वास"
+  },
+  {
+    "id": "surrender",
+    "name": "Sharanagati",
+    "sanskrit_term": "शरणागति",
+    "category": "practice",
+    "description": "Complete surrender to God; letting go of ego and trusting in the divine will",
+    "description_hindi": "भगवान को पूर्ण समर्पण; अहंकार का त्याग और ईश्वरीय इच्छा पर विश्वास"
+  },
+  {
+    "id": "ahamkara",
+    "name": "Ahamkara",
+    "sanskrit_term": "अहंकार",
+    "category": "psychology",
+    "description": "Ego; the false identification with the body and mind that creates separation from the true self",
+    "description_hindi": "अहंकार; शरीर और मन के साथ झूठा तादात्म्य जो सच्चे स्वरूप से अलगाव पैदा करता है"
+  },
+  {
+    "id": "buddhi",
+    "name": "Buddhi",
+    "sanskrit_term": "बुद्धि",
+    "category": "psychology",
+    "description": "Intellect and discernment; the faculty of wisdom that guides right action",
+    "description_hindi": "बुद्धि और विवेक; ज्ञान की शक्ति जो सही कर्म का मार्गदर्शन करती है"
+  },
+  {
+    "id": "ishvara",
+    "name": "Ishvara",
+    "sanskrit_term": "ईश्वर",
+    "category": "metaphysics",
+    "description": "The supreme lord; God as the personal, sovereign ruler of the universe",
+    "description_hindi": "परमेश्वर; ब्रह्मांड के व्यक्तिगत, सर्वोच्च शासक के रूप में भगवान"
+  },
+  {
+    "id": "vishvarupa",
+    "name": "Vishvarupa",
+    "sanskrit_term": "विश्वरूप",
+    "category": "revelation",
+    "description": "The cosmic universal form of God; Krishna's revelation of his infinite divine nature to Arjuna",
+    "description_hindi": "भगवान का विराट विश्वरूप; कृष्ण द्वारा अर्जुन को अपने अनंत दिव्य स्वरूप का दर्शन"
+  },
+  {
+    "id": "tyaga",
+    "name": "Tyaga",
+    "sanskrit_term": "त्याग",
+    "category": "practice",
+    "description": "Renunciation of the fruits of action; giving up attachment while continuing to act",
+    "description_hindi": "कर्मफल का त्याग; कर्म करते हुए आसक्ति का परित्याग"
+  },
+  {
+    "id": "sannyasa",
+    "name": "Sannyasa",
+    "sanskrit_term": "संन्यास",
+    "category": "practice",
+    "description": "Renunciation; giving up worldly pursuits and desires for spiritual liberation",
+    "description_hindi": "संन्यास; आध्यात्मिक मुक्ति के लिए सांसारिक इच्छाओं का त्याग"
+  },
+  {
+    "id": "daivi_sampat",
+    "name": "Daivi Sampat",
+    "sanskrit_term": "दैवी सम्पत्",
+    "category": "ethics",
+    "description": "Divine qualities; virtues like fearlessness, purity, compassion that lead to liberation",
+    "description_hindi": "दैवी गुण; निर्भयता, पवित्रता, करुणा जैसे गुण जो मुक्ति की ओर ले जाते हैं"
+  },
+  {
+    "id": "asuri_sampat",
+    "name": "Asuri Sampat",
+    "sanskrit_term": "आसुरी सम्पत्",
+    "category": "ethics",
+    "description": "Demonic qualities; traits like arrogance, anger, cruelty that lead to bondage",
+    "description_hindi": "आसुरी गुण; अहंकार, क्रोध, क्रूरता जैसे लक्षण जो बंधन की ओर ले जाते हैं"
+  },
+  {
+    "id": "avatara",
+    "name": "Avatara",
+    "sanskrit_term": "अवतार",
+    "category": "theology",
+    "description": "Divine descent; God incarnating on earth to restore dharma whenever it declines",
+    "description_hindi": "दिव्य अवतरण; जब-जब धर्म की हानि होती है तब-तब भगवान पृथ्वी पर अवतार लेते हैं"
+  },
+  {
+    "id": "yajna",
+    "name": "Yajna",
+    "sanskrit_term": "यज्ञ",
+    "category": "practice",
+    "description": "Sacrifice and offering; selfless action dedicated to the divine or for the welfare of all",
+    "description_hindi": "यज्ञ और अर्पण; ईश्वर को समर्पित या सबके कल्याण के लिए निस्वार्थ कर्म"
+  }
+]

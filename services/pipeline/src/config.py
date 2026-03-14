@@ -22,11 +22,14 @@ class Settings(BaseSettings):
 
     voyage_api_key: str = ""
 
+    cors_origins: str = "http://localhost:3000"
+
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = ""
 
-    chroma_persist_dir: str = "./data/chroma"
+    data_dir: str = str(_PROJECT_ROOT / "data")
+    chroma_persist_dir: str = str(_PROJECT_ROOT / "data" / "chroma")
 
     # Bedrock model IDs use a different format
     model_name: str = "us.anthropic.claude-sonnet-4-20250514-v1:0"

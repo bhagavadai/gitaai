@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 import chromadb
 
-CHROMA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "chroma"
+from ..config import settings
 
 _client: Optional[chromadb.PersistentClient] = None
 _collection = None
@@ -16,7 +15,7 @@ _collection = None
 def get_collection():
     global _client, _collection
     if _collection is None:
-        _client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+        _client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
         _collection = _client.get_collection("gita_verses")
     return _collection
 

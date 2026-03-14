@@ -14,10 +14,12 @@ from pathlib import Path
 
 import chromadb
 
+from ..config import settings
+
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "processed"
-CHROMA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "chroma"
+DATA_DIR = Path(settings.data_dir) / "processed"
+CHROMA_DIR = Path(settings.chroma_persist_dir)
 
 
 def load_data() -> tuple[list[dict], list[dict], list[dict]]:

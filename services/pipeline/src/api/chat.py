@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..config import settings
+from ..graph.traversal import get_concept_context
 from ..retrieval.vector_search import search_verses
 
 router = APIRouter()
@@ -116,16 +117,17 @@ def get_system_prompt(language: str) -> str:
 
 
 async def generate_stream(
-    message: str, verses: list[dict], language: str
+    message: str, verses: list[dict], language: str, graph_context: str = ""
 ) -> AsyncGenerator[str, None]:
     """Stream the LLM response."""
     client = get_client()
 
     context = format_context(verses, language)
-    user_message = (
-        f"Here are relevant Bhagavad Gita verses:\n\n{context}\n\n"
-        f"---\n\nUser question: {message}"
-    )
+    parts = [f"Here are relevant Bhagavad Gita verses:\n\n{context}"]
+    if graph_context:
+        parts.append(f"Knowledge graph context:\n\n{graph_context}")
+    parts.append(f"User question: {message}")
+    user_message = "\n\n---\n\n".join(parts)
 
     with client.messages.stream(
         model=settings.model_name,
@@ -138,20 +140,65 @@ async def generate_stream(
             yield text
 
 
+class ConceptInfo(BaseModel):
+    id: str
+    name: str
+    sanskrit_term: str
+    category: str
+    description: str
+    description_hindi: str = ""
+
+
 @router.post("/chat")
 async def chat(request: ChatRequest):
-    """Retrieve relevant verses and stream a Claude-generated answer."""
+    """Retrieve relevant verses via hybrid search (vector + graph) and stream answer."""
     language = request.language
     if language == "auto":
         language = detect_language(request.message)
 
+    # Vector search
     verses = search_verses(request.message, n_results=request.n_verses)
+
+    # Graph context (concepts, relationships, key verses) — graceful fallback
+    try:
+        graph_result = get_concept_context(request.message)
+    except Exception:
+        graph_result = {}
+    graph_context = graph_result.get("graph_context", "")
+
+    # Boost retrieval with graph-suggested key verses not already in vector results
+    vector_ids = {v["verse_id"] for v in verses}
+    for gv in graph_result.get("key_verses", []):
+        if gv["verse_id"] not in vector_ids:
+            # Search for this specific verse to get full metadata
+            from_vector = search_verses(gv["verse_id"], n_results=1)
+            if from_vector:
+                verses.append(from_vector[0])
+                vector_ids.add(gv["verse_id"])
+            if len(verses) >= request.n_verses + 3:
+                break
+
+    # Build concept list for frontend
+    matched_concepts = [
+        ConceptInfo(**c).model_dump() for c in graph_result.get("matched_concepts", [])
+    ]
+    related_concepts = []
+    seen_ids = {c["id"] for c in matched_concepts}
+    for rc in graph_result.get("related_concepts", []):
+        if rc["id"] not in seen_ids:
+            seen_ids.add(rc["id"])
+            related_concepts.append(ConceptInfo(**rc).model_dump())
 
     async def stream_response():
         verse_data = [VerseContext(**v).model_dump() for v in verses]
-        yield json.dumps({"verses": verse_data, "language": language}) + "\n"
+        yield json.dumps({
+            "verses": verse_data,
+            "language": language,
+            "concepts": matched_concepts,
+            "related_concepts": related_concepts,
+        }) + "\n"
 
-        async for chunk in generate_stream(request.message, verses, language):
+        async for chunk in generate_stream(request.message, verses, language, graph_context):
             yield chunk
 
     return StreamingResponse(stream_response(), media_type="text/plain")
@@ -165,14 +212,20 @@ async def chat_sync(request: ChatRequest):
         language = detect_language(request.message)
 
     verses = search_verses(request.message, n_results=request.n_verses)
+    try:
+        graph_result = get_concept_context(request.message)
+    except Exception:
+        graph_result = {}
+    graph_context = graph_result.get("graph_context", "")
 
     client = get_client()
 
     context = format_context(verses, language)
-    user_message = (
-        f"Here are relevant Bhagavad Gita verses:\n\n{context}\n\n"
-        f"---\n\nUser question: {request.message}"
-    )
+    parts = [f"Here are relevant Bhagavad Gita verses:\n\n{context}"]
+    if graph_context:
+        parts.append(f"Knowledge graph context:\n\n{graph_context}")
+    parts.append(f"User question: {request.message}")
+    user_message = "\n\n---\n\n".join(parts)
 
     response = client.messages.create(
         model=settings.model_name,

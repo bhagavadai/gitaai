@@ -49,12 +49,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full technical design.
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js (TypeScript, Tailwind CSS) |
-| Backend | Next.js API routes + FastAPI (Python) |
+| Backend | FastAPI (Python) |
 | LLM | Claude API (Anthropic) |
 | Knowledge Graph | Neo4j |
-| Vector Store | Weaviate / ChromaDB |
-| Embeddings | Voyage AI |
-| Database | PostgreSQL |
+| Vector Store | ChromaDB |
+| Embeddings | MiniLM (local, via ChromaDB) |
 
 ## Getting Started
 
@@ -62,14 +61,14 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full technical design.
 
 - Node.js 20+
 - Python 3.11+
-- pnpm
-- Docker (for Neo4j, PostgreSQL in development)
+- npm
+- Docker (for Neo4j)
 
 ### Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/agni21/gitaai.git
+git clone https://github.com/bhagavadai/gitaai.git
 cd gitaai
 
 # Copy environment variables
@@ -77,29 +76,63 @@ cp .env.example .env
 # Fill in your API keys in .env
 
 # Install frontend dependencies
-cd apps/web && pnpm install
+cd apps/web && npm install && cd ../..
 
 # Install Python dependencies
-cd ../../services/pipeline && pip install -e ".[dev]"
+cd services/pipeline && pip install -e ".[dev]" && cd ../..
 
-# Start development services (Neo4j, PostgreSQL)
-docker compose up -d
+# Start Neo4j
+docker compose up -d neo4j
 
-# Run the frontend
-cd ../../apps/web && pnpm dev
+# Ingest data into ChromaDB
+python3 -m services.pipeline.src.ingest.load_verses
 
-# Run the Python API (in another terminal)
-cd services/pipeline && uvicorn src.api.main:app --reload
+# Seed knowledge graph (requires Neo4j running)
+python3 -c "from services.pipeline.src.ingest.seed_graph import seed; from services.pipeline.src.config import settings; seed(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)"
+
+# Run the backend (from project root)
+python3 -m uvicorn services.pipeline.src.api.main:app --reload
+
+# Run the frontend (in another terminal)
+cd apps/web && npm run dev
 ```
 
 ### Environment Variables
 
 See [.env.example](.env.example) for all required variables:
 
-- `ANTHROPIC_API_KEY` — Claude API key
-- `NEO4J_URI` — Neo4j connection string
-- `DATABASE_URL` — PostgreSQL connection string
+- `LLM_PROVIDER` — `bedrock` (AWS) or `anthropic` (direct API)
+- `ANTHROPIC_API_KEY` or `AWS_*` — LLM credentials
 - `VOYAGE_API_KEY` — Voyage AI embedding API key
+- `NEO4J_URI` / `NEO4J_USER` / `NEO4J_PASSWORD` — Neo4j connection
+- `CORS_ORIGINS` — Comma-separated allowed origins for the API
+- `NEXT_PUBLIC_PIPELINE_URL` — Backend URL for the frontend
+
+## Deployment
+
+### Frontend (Vercel)
+
+1. Connect your GitHub repo to [Vercel](https://vercel.com)
+2. It will auto-detect the `vercel.json` config (builds from `apps/web/`)
+3. Set environment variable: `NEXT_PUBLIC_PIPELINE_URL` = your backend URL
+
+### Backend (Railway)
+
+1. Create a new [Railway](https://railway.app) project from the repo
+2. Point to the Dockerfile at `services/pipeline/Dockerfile`
+3. Add a Neo4j service (or use [Neo4j Aura](https://neo4j.com/cloud/aura-free/) free tier)
+4. Set environment variables: API keys, `NEO4J_URI`, `CORS_ORIGINS` (your Vercel URL)
+5. Mount a persistent volume at `/app/data` for ChromaDB
+
+### Docker Compose (local / self-hosted)
+
+```bash
+# Start Neo4j + backend
+docker compose up -d
+
+# Frontend runs separately
+cd apps/web && npm run dev
+```
 
 ## Project Structure
 
@@ -120,8 +153,8 @@ This is a project that bridges technology and spirituality. We ask contributors 
 
 ## Roadmap
 
-- [ ] **Phase 1** — MVP: Gita RAG chat with basic citation
-- [ ] **Phase 2** — Knowledge Graph integration, multi-text support
+- [x] **Phase 1** — MVP: Gita RAG chat with verse citations and Hindi support
+- [x] **Phase 2** — Knowledge Graph integration (concepts, relationships, hybrid retrieval)
 - [ ] **Phase 3** — Multi-perspective answers, graph visualization, learning paths
 - [ ] **Phase 4** — Community annotations, Hindi/Sanskrit UI, mobile app
 

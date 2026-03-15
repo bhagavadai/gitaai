@@ -8,8 +8,11 @@ _ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
-    # LLM provider: "anthropic" (direct API) or "bedrock" (AWS)
-    llm_provider: str = "bedrock"
+    # LLM provider: "openrouter", "anthropic", or "bedrock"
+    llm_provider: str = "openrouter"
+
+    # OpenRouter (recommended for free/low-cost models)
+    openrouter_api_key: str = ""
 
     # Direct Anthropic API
     anthropic_api_key: str = ""
@@ -31,8 +34,11 @@ class Settings(BaseSettings):
     data_dir: str = str(_PROJECT_ROOT / "data")
     chroma_persist_dir: str = str(_PROJECT_ROOT / "data" / "chroma")
 
-    # Bedrock model IDs use a different format
-    model_name: str = "us.anthropic.claude-sonnet-4-20250514-v1:0"
+    # Model name (format depends on provider)
+    # OpenRouter: "google/gemini-2.0-flash-exp:free"
+    # Bedrock: "us.anthropic.claude-sonnet-4-20250514-v1:0"
+    # Anthropic: "claude-sonnet-4-20250514"
+    model_name: str = "google/gemini-2.0-flash-exp:free"
     embedding_model: str = "voyage-3"
     temperature: float = 0.2
     max_tokens: int = 2048

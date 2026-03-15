@@ -21,6 +21,9 @@ COPY services/pipeline/src/ services/pipeline/src/
 ENV DATA_DIR=/app/data
 ENV CHROMA_PERSIST_DIR=/app/data/chroma
 
+# Create data dirs so app doesn't crash before volume is mounted
+RUN mkdir -p /app/data/chroma
+
 ENV PORT=8000
 EXPOSE ${PORT}
 

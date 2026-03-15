@@ -3,8 +3,7 @@ builder = "dockerfile"
 dockerfilePath = "services/pipeline/Dockerfile"
 
 [deploy]
-startCommand = "python3 -m uvicorn services.pipeline.src.api.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

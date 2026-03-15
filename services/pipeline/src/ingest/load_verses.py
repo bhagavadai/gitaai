@@ -88,18 +88,20 @@ def build_documents(
 
         documents.append("\n\n".join(doc_parts))
         ids.append(verse["id"])
-        metadatas.append({
-            "chapter_number": verse["chapter_number"],
-            "verse_number": vnum,
-            "sanskrit": verse["sanskrit"],
-            "transliteration": verse["transliteration"],
-            "translation": translation_text,
-            "translator": translator,
-            "translation_hindi": translation_hindi,
-            "translator_hindi": translator_hindi,
-            "chapter_name": chapter_name,
-            "verse_id": verse["id"],
-        })
+        metadatas.append(
+            {
+                "chapter_number": verse["chapter_number"],
+                "verse_number": vnum,
+                "sanskrit": verse["sanskrit"],
+                "transliteration": verse["transliteration"],
+                "translation": translation_text,
+                "translator": translator,
+                "translation_hindi": translation_hindi,
+                "translator_hindi": translator_hindi,
+                "chapter_name": chapter_name,
+                "verse_id": verse["id"],
+            }
+        )
 
     return documents, ids, metadatas
 

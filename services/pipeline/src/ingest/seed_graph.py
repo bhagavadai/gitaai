@@ -20,10 +20,22 @@ PROCESSED_DIR = DATA_DIR / "processed"
 SEED_DIR = DATA_DIR / "seed"
 
 SPEAKER_PATTERNS = {
-    "krishna": ["\u0936\u094d\u0930\u0940\u092d\u0917\u0935\u093e\u0928\u0941\u0935\u093e\u091a", "\u0936\u094d\u0930\u0940 \u092d\u0917\u0935\u093e\u0928\u0941\u0935\u093e\u091a"],
-    "arjuna": ["\u0905\u0930\u094d\u091c\u0941\u0928 \u0909\u0935\u093e\u091a", "\u0905\u0930\u094d\u091c\u0941\u0928\u0909\u0935\u093e\u091a"],
-    "sanjaya": ["\u0938\u091e\u094d\u091c\u092f \u0909\u0935\u093e\u091a", "\u0938\u0902\u091c\u092f \u0909\u0935\u093e\u091a", "\u0938\u0902\u091c\u092f\u0909\u0935\u093e\u091a"],
-    "dhritarashtra": ["\u0927\u0943\u0924\u0930\u093e\u0937\u094d\u091f\u094d\u0930 \u0909\u0935\u093e\u091a"],
+    "krishna": [
+        "श्रीभगवानुवाच",
+        "श्री भगवानुवाच",
+    ],
+    "arjuna": [
+        "अर्जुन उवाच",
+        "अर्जुनउवाच",
+    ],
+    "sanjaya": [
+        "सञ्जय उवाच",
+        "संजय उवाच",
+        "संजयउवाच",
+    ],
+    "dhritarashtra": [
+        "धृतराष्ट्र उवाच",
+    ],
 }
 
 
@@ -65,12 +77,28 @@ def load_seed_data():
         persons = json.load(f)
     with open(SEED_DIR / "person_concept_map.json", encoding="utf-8") as f:
         person_concept_map = json.load(f)
-    return chapters, verses, concepts, concept_verse_map, concept_relationships, persons, person_concept_map
+    return (
+        chapters,
+        verses,
+        concepts,
+        concept_verse_map,
+        concept_relationships,
+        persons,
+        person_concept_map,
+    )
 
 
 def seed(uri: str, user: str, password: str):
     """Seed the Neo4j graph with Gita knowledge graph data."""
-    chapters, verses, concepts, concept_verse_map, concept_relationships, persons, person_concept_map = load_seed_data()
+    (
+        chapters,
+        verses,
+        concepts,
+        concept_verse_map,
+        concept_relationships,
+        persons,
+        person_concept_map,
+    ) = load_seed_data()
     speaker_map = detect_speakers(verses)
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -96,7 +124,11 @@ def seed(uri: str, user: str, password: str):
         # Scripture node
         logger.info("Creating Scripture node...")
         session.run(
-            "CREATE (:Scripture {name: 'Bhagavad Gita', sanskrit_name: $sn, tradition: 'Hindu', language: 'Sanskrit', chapters: 18, verses: 701})",
+            """CREATE (:Scripture {
+                name: 'Bhagavad Gita', sanskrit_name: $sn,
+                tradition: 'Hindu', language: 'Sanskrit',
+                chapters: 18, verses: 701
+            })""",
             sn="भगवद्गीता",
         )
 
@@ -208,7 +240,7 @@ def seed(uri: str, user: str, password: str):
         for rel in concept_relationships:
             session.run(
                 f"""MATCH (a:Concept {{id: $from_id}}), (b:Concept {{id: $to_id}})
-                    CREATE (a)-[:{rel['type']}]->(b)""",
+                    CREATE (a)-[:{rel["type"]}]->(b)""",
                 from_id=rel["from"],
                 to_id=rel["to"],
             )
@@ -219,7 +251,7 @@ def seed(uri: str, user: str, password: str):
         for pcm in person_concept_map:
             session.run(
                 f"""MATCH (p:Person {{id: $pid}}), (c:Concept {{id: $cid}})
-                    CREATE (p)-[:{pcm['type']}]->(c)""",
+                    CREATE (p)-[:{pcm["type"]}]->(c)""",
                 pid=pcm["person"],
                 cid=pcm["concept"],
             )

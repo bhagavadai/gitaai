@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from neo4j import GraphDatabase
 
@@ -47,8 +46,14 @@ def expand_concepts(concept_ids: list[str], depth: int = 1) -> dict:
 
     Returns:
         {
-            "related_concepts": [{"id", "name", "sanskrit_term", "category", "description", "relationship"}],
-            "key_verses": [{"verse_id", "chapter_number", "verse_number", "relationship"}],
+            "related_concepts": [
+                {"id", "name", "sanskrit_term", "category",
+                 "description", "relationship"}
+            ],
+            "key_verses": [
+                {"verse_id", "chapter_number",
+                 "verse_number", "relationship"}
+            ],
             "graph_context": str  # formatted context for LLM
         }
     """
@@ -214,9 +219,7 @@ def _match_concepts_from_query(query: str) -> list[dict]:
     return matches
 
 
-def _format_graph_context(
-    concept_ids: list[str], related_concepts: list[dict], session
-) -> str:
+def _format_graph_context(concept_ids: list[str], related_concepts: list[dict], session) -> str:
     """Format graph data into a text context for the LLM."""
     parts = []
 
@@ -231,9 +234,7 @@ def _format_graph_context(
 
     parts.append("Relevant Gita concepts:")
     for record in result:
-        parts.append(
-            f"- {record['name']} ({record['sanskrit_term']}): {record['description']}"
-        )
+        parts.append(f"- {record['name']} ({record['sanskrit_term']}): {record['description']}")
 
     if related_concepts:
         parts.append("\nRelated concepts:")
@@ -241,9 +242,7 @@ def _format_graph_context(
         for rc in related_concepts:
             if rc["id"] not in seen:
                 seen.add(rc["id"])
-                parts.append(
-                    f"- {rc['name']} ({rc['sanskrit_term']}): {rc['description']}"
-                )
+                parts.append(f"- {rc['name']} ({rc['sanskrit_term']}): {rc['description']}")
 
     # Get who teaches these concepts
     result = session.run(

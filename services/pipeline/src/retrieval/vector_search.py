@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import chromadb
 
 from ..config import settings
 
-_client: Optional[chromadb.PersistentClient] = None
+_client: chromadb.PersistentClient | None = None
 _collection = None
 
 
@@ -33,18 +31,20 @@ def search_verses(query: str, n_results: int = 5) -> list[dict]:
     verses = []
     for i, doc_id in enumerate(results["ids"][0]):
         meta = results["metadatas"][0][i]
-        verses.append({
-            "verse_id": meta["verse_id"],
-            "chapter_number": meta["chapter_number"],
-            "verse_number": meta["verse_number"],
-            "sanskrit": meta["sanskrit"],
-            "transliteration": meta["transliteration"],
-            "translation": meta["translation"],
-            "translator": meta["translator"],
-            "translation_hindi": meta.get("translation_hindi", ""),
-            "translator_hindi": meta.get("translator_hindi", ""),
-            "chapter_name": meta["chapter_name"],
-            "relevance_rank": i + 1,
-        })
+        verses.append(
+            {
+                "verse_id": meta["verse_id"],
+                "chapter_number": meta["chapter_number"],
+                "verse_number": meta["verse_number"],
+                "sanskrit": meta["sanskrit"],
+                "transliteration": meta["transliteration"],
+                "translation": meta["translation"],
+                "translator": meta["translator"],
+                "translation_hindi": meta.get("translation_hindi", ""),
+                "translator_hindi": meta.get("translator_hindi", ""),
+                "chapter_name": meta["chapter_name"],
+                "relevance_rank": i + 1,
+            }
+        )
 
     return verses

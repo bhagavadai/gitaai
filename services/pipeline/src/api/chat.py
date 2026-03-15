@@ -1,11 +1,13 @@
-"""Chat endpoint: retrieve relevant verses and generate answer with Claude."""
+"""Chat endpoint: retrieve relevant verses and stream LLM answer."""
 
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncGenerator
 
 import anthropic
+import openai
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -14,11 +16,14 @@ from ..config import settings
 from ..graph.traversal import get_concept_context
 from ..retrieval.vector_search import search_verses
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
-def get_client():
-    """Create the appropriate Anthropic client based on config."""
+
+def _get_anthropic_client():
+    """Create Anthropic client (direct or Bedrock)."""
     if settings.llm_provider == "bedrock":
         kwargs = {"aws_region": settings.aws_region}
         if settings.aws_access_key_id:
@@ -26,6 +31,14 @@ def get_client():
             kwargs["aws_secret_key"] = settings.aws_secret_access_key
         return anthropic.AnthropicBedrock(**kwargs)
     return anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+
+def _get_openrouter_client():
+    """Create OpenAI-compatible client for OpenRouter."""
+    return openai.OpenAI(
+        base_url=OPENROUTER_BASE_URL,
+        api_key=settings.openrouter_api_key,
+    )
 
 
 SYSTEM_PROMPT_EN = (
@@ -135,19 +148,21 @@ def get_system_prompt(language: str) -> str:
     return SYSTEM_PROMPT_EN
 
 
-async def generate_stream(
+def _build_user_message(
     message: str, verses: list[dict], language: str, graph_context: str = ""
-) -> AsyncGenerator[str, None]:
-    """Stream the LLM response."""
-    client = get_client()
-
+) -> str:
+    """Build the full user message with verse context."""
     context = format_context(verses, language)
     parts = [f"Here are relevant Bhagavad Gita verses:\n\n{context}"]
     if graph_context:
         parts.append(f"Knowledge graph context:\n\n{graph_context}")
     parts.append(f"User question: {message}")
-    user_message = "\n\n---\n\n".join(parts)
+    return "\n\n---\n\n".join(parts)
 
+
+async def _stream_anthropic(user_message: str, language: str) -> AsyncGenerator[str, None]:
+    """Stream via Anthropic (direct or Bedrock)."""
+    client = _get_anthropic_client()
     with client.messages.stream(
         model=settings.model_name,
         max_tokens=settings.max_tokens,
@@ -156,6 +171,38 @@ async def generate_stream(
         temperature=settings.temperature,
     ) as stream:
         for text in stream.text_stream:
+            yield text
+
+
+async def _stream_openrouter(user_message: str, language: str) -> AsyncGenerator[str, None]:
+    """Stream via OpenRouter (OpenAI-compatible API)."""
+    client = _get_openrouter_client()
+    stream = client.chat.completions.create(
+        model=settings.model_name,
+        max_tokens=settings.max_tokens,
+        messages=[
+            {"role": "system", "content": get_system_prompt(language)},
+            {"role": "user", "content": user_message},
+        ],
+        temperature=settings.temperature,
+        stream=True,
+    )
+    for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+
+
+async def generate_stream(
+    message: str, verses: list[dict], language: str, graph_context: str = ""
+) -> AsyncGenerator[str, None]:
+    """Stream the LLM response using the configured provider."""
+    user_message = _build_user_message(message, verses, language, graph_context)
+
+    if settings.llm_provider == "openrouter":
+        async for text in _stream_openrouter(user_message, language):
+            yield text
+    else:
+        async for text in _stream_anthropic(user_message, language):
             yield text
 
 
@@ -242,25 +289,33 @@ async def chat_sync(request: ChatRequest):
         graph_result = {}
     graph_context = graph_result.get("graph_context", "")
 
-    client = get_client()
+    user_message = _build_user_message(request.message, verses, language, graph_context)
 
-    context = format_context(verses, language)
-    parts = [f"Here are relevant Bhagavad Gita verses:\n\n{context}"]
-    if graph_context:
-        parts.append(f"Knowledge graph context:\n\n{graph_context}")
-    parts.append(f"User question: {request.message}")
-    user_message = "\n\n---\n\n".join(parts)
-
-    response = client.messages.create(
-        model=settings.model_name,
-        max_tokens=settings.max_tokens,
-        system=get_system_prompt(language),
-        messages=[{"role": "user", "content": user_message}],
-        temperature=settings.temperature,
-    )
+    if settings.llm_provider == "openrouter":
+        client = _get_openrouter_client()
+        response = client.chat.completions.create(
+            model=settings.model_name,
+            max_tokens=settings.max_tokens,
+            messages=[
+                {"role": "system", "content": get_system_prompt(language)},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=settings.temperature,
+        )
+        answer = response.choices[0].message.content
+    else:
+        client = _get_anthropic_client()
+        response = client.messages.create(
+            model=settings.model_name,
+            max_tokens=settings.max_tokens,
+            system=get_system_prompt(language),
+            messages=[{"role": "user", "content": user_message}],
+            temperature=settings.temperature,
+        )
+        answer = response.content[0].text
 
     return ChatResponse(
-        answer=response.content[0].text,
+        answer=answer,
         verses=[VerseContext(**v) for v in verses],
         language=language,
     )

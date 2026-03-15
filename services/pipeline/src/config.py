@@ -8,10 +8,16 @@ _ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
-    # LLM provider: "openrouter", "anthropic", or "bedrock"
-    llm_provider: str = "openrouter"
+    # LLM provider: "groq", "google", "openrouter", "anthropic", or "bedrock"
+    llm_provider: str = "groq"
 
-    # OpenRouter (recommended for free/low-cost models)
+    # Groq (recommended — free, fast, reliable)
+    groq_api_key: str = ""
+
+    # Google AI Studio (Gemini — free 15 RPM)
+    google_api_key: str = ""
+
+    # OpenRouter (multiple models, free tier unreliable)
     openrouter_api_key: str = ""
 
     # Direct Anthropic API
@@ -35,10 +41,12 @@ class Settings(BaseSettings):
     chroma_persist_dir: str = str(_PROJECT_ROOT / "data" / "chroma")
 
     # Model name (format depends on provider)
+    # Groq: "llama-3.3-70b-versatile"
+    # Google: "gemini-2.0-flash"
     # OpenRouter: "google/gemini-2.0-flash-exp:free"
     # Bedrock: "us.anthropic.claude-sonnet-4-20250514-v1:0"
     # Anthropic: "claude-sonnet-4-20250514"
-    model_name: str = "google/gemini-2.0-flash-exp:free"
+    model_name: str = "llama-3.3-70b-versatile"
     embedding_model: str = "voyage-3"
     temperature: float = 0.2
     max_tokens: int = 2048

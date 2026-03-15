@@ -19,7 +19,24 @@ from ..retrieval.vector_search import search_verses
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+_OPENAI_PROVIDERS = {
+    "groq": ("https://api.groq.com/openai/v1", "groq_api_key"),
+    "google": (
+        "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "google_api_key",
+    ),
+    "openrouter": ("https://openrouter.ai/api/v1", "openrouter_api_key"),
+}
+
+
+def _get_openai_client():
+    """Create OpenAI-compatible client for Groq, Google, or OpenRouter."""
+    provider = settings.llm_provider
+    base_url, key_attr = _OPENAI_PROVIDERS[provider]
+    return openai.OpenAI(
+        base_url=base_url,
+        api_key=getattr(settings, key_attr),
+    )
 
 
 def _get_anthropic_client():
@@ -31,14 +48,6 @@ def _get_anthropic_client():
             kwargs["aws_secret_key"] = settings.aws_secret_access_key
         return anthropic.AnthropicBedrock(**kwargs)
     return anthropic.Anthropic(api_key=settings.anthropic_api_key)
-
-
-def _get_openrouter_client():
-    """Create OpenAI-compatible client for OpenRouter."""
-    return openai.OpenAI(
-        base_url=OPENROUTER_BASE_URL,
-        api_key=settings.openrouter_api_key,
-    )
 
 
 SYSTEM_PROMPT_EN = (
@@ -160,23 +169,9 @@ def _build_user_message(
     return "\n\n---\n\n".join(parts)
 
 
-async def _stream_anthropic(user_message: str, language: str) -> AsyncGenerator[str, None]:
-    """Stream via Anthropic (direct or Bedrock)."""
-    client = _get_anthropic_client()
-    with client.messages.stream(
-        model=settings.model_name,
-        max_tokens=settings.max_tokens,
-        system=get_system_prompt(language),
-        messages=[{"role": "user", "content": user_message}],
-        temperature=settings.temperature,
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
-
-
-async def _stream_openrouter(user_message: str, language: str) -> AsyncGenerator[str, None]:
-    """Stream via OpenRouter (OpenAI-compatible API)."""
-    client = _get_openrouter_client()
+async def _stream_openai_compat(user_message: str, language: str) -> AsyncGenerator[str, None]:
+    """Stream via OpenAI-compatible API (Groq, Google, OpenRouter)."""
+    client = _get_openai_client()
     stream = client.chat.completions.create(
         model=settings.model_name,
         max_tokens=settings.max_tokens,
@@ -192,14 +187,28 @@ async def _stream_openrouter(user_message: str, language: str) -> AsyncGenerator
             yield chunk.choices[0].delta.content
 
 
+async def _stream_anthropic(user_message: str, language: str) -> AsyncGenerator[str, None]:
+    """Stream via Anthropic (direct or Bedrock)."""
+    client = _get_anthropic_client()
+    with client.messages.stream(
+        model=settings.model_name,
+        max_tokens=settings.max_tokens,
+        system=get_system_prompt(language),
+        messages=[{"role": "user", "content": user_message}],
+        temperature=settings.temperature,
+    ) as stream:
+        for text in stream.text_stream:
+            yield text
+
+
 async def generate_stream(
     message: str, verses: list[dict], language: str, graph_context: str = ""
 ) -> AsyncGenerator[str, None]:
     """Stream the LLM response using the configured provider."""
     user_message = _build_user_message(message, verses, language, graph_context)
 
-    if settings.llm_provider == "openrouter":
-        async for text in _stream_openrouter(user_message, language):
+    if settings.llm_provider in _OPENAI_PROVIDERS:
+        async for text in _stream_openai_compat(user_message, language):
             yield text
     else:
         async for text in _stream_anthropic(user_message, language):
@@ -291,8 +300,8 @@ async def chat_sync(request: ChatRequest):
 
     user_message = _build_user_message(request.message, verses, language, graph_context)
 
-    if settings.llm_provider == "openrouter":
-        client = _get_openrouter_client()
+    if settings.llm_provider in _OPENAI_PROVIDERS:
+        client = _get_openai_client()
         response = client.chat.completions.create(
             model=settings.model_name,
             max_tokens=settings.max_tokens,

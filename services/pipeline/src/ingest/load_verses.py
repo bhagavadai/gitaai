@@ -9,12 +9,17 @@ Each verse is stored as a document combining:
 """
 
 import json
+import logging
 from pathlib import Path
 
 import chromadb
 
-DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "processed"
-CHROMA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data" / "chroma"
+from ..config import settings
+
+logger = logging.getLogger(__name__)
+
+DATA_DIR = Path(settings.data_dir) / "processed"
+CHROMA_DIR = Path(settings.chroma_persist_dir)
 
 
 def load_data() -> tuple[list[dict], list[dict], list[dict]]:
@@ -83,31 +88,33 @@ def build_documents(
 
         documents.append("\n\n".join(doc_parts))
         ids.append(verse["id"])
-        metadatas.append({
-            "chapter_number": verse["chapter_number"],
-            "verse_number": vnum,
-            "sanskrit": verse["sanskrit"],
-            "transliteration": verse["transliteration"],
-            "translation": translation_text,
-            "translator": translator,
-            "translation_hindi": translation_hindi,
-            "translator_hindi": translator_hindi,
-            "chapter_name": chapter_name,
-            "verse_id": verse["id"],
-        })
+        metadatas.append(
+            {
+                "chapter_number": verse["chapter_number"],
+                "verse_number": vnum,
+                "sanskrit": verse["sanskrit"],
+                "transliteration": verse["transliteration"],
+                "translation": translation_text,
+                "translator": translator,
+                "translation_hindi": translation_hindi,
+                "translator_hindi": translator_hindi,
+                "chapter_name": chapter_name,
+                "verse_id": verse["id"],
+            }
+        )
 
     return documents, ids, metadatas
 
 
 def ingest():
-    print("Loading data...")
+    logger.info("Loading data...")
     verses, translations, chapters = load_data()
 
-    print("Building documents...")
+    logger.info("Building documents...")
     documents, ids, metadatas = build_documents(verses, translations, chapters)
-    print(f"Prepared {len(documents)} documents")
+    logger.info("Prepared %d documents", len(documents))
 
-    print(f"Initializing ChromaDB at {CHROMA_DIR}...")
+    logger.info("Initializing ChromaDB at %s...", CHROMA_DIR)
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
 
     # Delete existing collection if re-ingesting
@@ -130,16 +137,17 @@ def ingest():
             ids=ids[i:end],
             metadatas=metadatas[i:end],
         )
-        print(f"  Inserted verses {i+1}-{end}")
+        logger.info("  Inserted verses %d-%d", i + 1, end)
 
-    print(f"\nDone! {collection.count()} verses in ChromaDB")
+    logger.info("Done! %d verses in ChromaDB", collection.count())
 
     # Quick sanity check
     results = collection.query(query_texts=["What is the nature of the soul?"], n_results=3)
-    print("\nSanity check — 'What is the nature of the soul?':")
+    logger.info("Sanity check — 'What is the nature of the soul?':")
     for doc_id, meta in zip(results["ids"][0], results["metadatas"][0]):
-        print(f"  {doc_id}: {meta['translation'][:100]}...")
+        logger.info("  %s: %s...", doc_id, meta["translation"][:100])
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     ingest()

@@ -8,19 +8,34 @@ Creates relationships: PART_OF, MENTIONS, EXPLAINS, RELATES_TO,
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from neo4j import GraphDatabase
+
+logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data"
 PROCESSED_DIR = DATA_DIR / "processed"
 SEED_DIR = DATA_DIR / "seed"
 
 SPEAKER_PATTERNS = {
-    "krishna": ["\u0936\u094d\u0930\u0940\u092d\u0917\u0935\u093e\u0928\u0941\u0935\u093e\u091a", "\u0936\u094d\u0930\u0940 \u092d\u0917\u0935\u093e\u0928\u0941\u0935\u093e\u091a"],
-    "arjuna": ["\u0905\u0930\u094d\u091c\u0941\u0928 \u0909\u0935\u093e\u091a", "\u0905\u0930\u094d\u091c\u0941\u0928\u0909\u0935\u093e\u091a"],
-    "sanjaya": ["\u0938\u091e\u094d\u091c\u092f \u0909\u0935\u093e\u091a", "\u0938\u0902\u091c\u092f \u0909\u0935\u093e\u091a", "\u0938\u0902\u091c\u092f\u0909\u0935\u093e\u091a"],
-    "dhritarashtra": ["\u0927\u0943\u0924\u0930\u093e\u0937\u094d\u091f\u094d\u0930 \u0909\u0935\u093e\u091a"],
+    "krishna": [
+        "श्रीभगवानुवाच",
+        "श्री भगवानुवाच",
+    ],
+    "arjuna": [
+        "अर्जुन उवाच",
+        "अर्जुनउवाच",
+    ],
+    "sanjaya": [
+        "सञ्जय उवाच",
+        "संजय उवाच",
+        "संजयउवाच",
+    ],
+    "dhritarashtra": [
+        "धृतराष्ट्र उवाच",
+    ],
 }
 
 
@@ -62,23 +77,39 @@ def load_seed_data():
         persons = json.load(f)
     with open(SEED_DIR / "person_concept_map.json", encoding="utf-8") as f:
         person_concept_map = json.load(f)
-    return chapters, verses, concepts, concept_verse_map, concept_relationships, persons, person_concept_map
+    return (
+        chapters,
+        verses,
+        concepts,
+        concept_verse_map,
+        concept_relationships,
+        persons,
+        person_concept_map,
+    )
 
 
 def seed(uri: str, user: str, password: str):
     """Seed the Neo4j graph with Gita knowledge graph data."""
-    chapters, verses, concepts, concept_verse_map, concept_relationships, persons, person_concept_map = load_seed_data()
+    (
+        chapters,
+        verses,
+        concepts,
+        concept_verse_map,
+        concept_relationships,
+        persons,
+        person_concept_map,
+    ) = load_seed_data()
     speaker_map = detect_speakers(verses)
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
 
     with driver.session() as session:
         # Clear existing data
-        print("Clearing existing graph data...")
+        logger.info("Clearing existing graph data...")
         session.run("MATCH (n) DETACH DELETE n")
 
         # Create constraints for performance
-        print("Creating constraints...")
+        logger.info("Creating constraints...")
         for label, prop in [
             ("Scripture", "name"),
             ("Chapter", "number"),
@@ -91,14 +122,18 @@ def seed(uri: str, user: str, password: str):
             )
 
         # Scripture node
-        print("Creating Scripture node...")
+        logger.info("Creating Scripture node...")
         session.run(
-            "CREATE (:Scripture {name: 'Bhagavad Gita', sanskrit_name: $sn, tradition: 'Hindu', language: 'Sanskrit', chapters: 18, verses: 701})",
+            """CREATE (:Scripture {
+                name: 'Bhagavad Gita', sanskrit_name: $sn,
+                tradition: 'Hindu', language: 'Sanskrit',
+                chapters: 18, verses: 701
+            })""",
             sn="भगवद्गीता",
         )
 
         # Chapter nodes
-        print(f"Creating {len(chapters)} Chapter nodes...")
+        logger.info("Creating %d Chapter nodes...", len(chapters))
         for ch in chapters:
             session.run(
                 """CREATE (c:Chapter {
@@ -120,7 +155,7 @@ def seed(uri: str, user: str, password: str):
             )
 
         # Verse nodes
-        print(f"Creating {len(verses)} Verse nodes...")
+        logger.info("Creating %d Verse nodes...", len(verses))
         batch_size = 100
         for i in range(0, len(verses), batch_size):
             batch = verses[i : i + batch_size]
@@ -142,10 +177,10 @@ def seed(uri: str, user: str, password: str):
                     vid=v["id"],
                     ch=v["chapter_number"],
                 )
-            print(f"  Inserted verses {i + 1}-{min(i + batch_size, len(verses))}")
+            logger.info("  Inserted verses %d-%d", i + 1, min(i + batch_size, len(verses)))
 
         # Concept nodes
-        print(f"Creating {len(concepts)} Concept nodes...")
+        logger.info("Creating %d Concept nodes...", len(concepts))
         for c in concepts:
             session.run(
                 """CREATE (:Concept {
@@ -161,7 +196,7 @@ def seed(uri: str, user: str, password: str):
             )
 
         # Person nodes
-        print(f"Creating {len(persons)} Person nodes...")
+        logger.info("Creating %d Person nodes...", len(persons))
         for p in persons:
             session.run(
                 """CREATE (:Person {
@@ -177,7 +212,7 @@ def seed(uri: str, user: str, password: str):
             )
 
         # Concept-Verse relationships (EXPLAINS and MENTIONS)
-        print("Creating Concept-Verse relationships...")
+        logger.info("Creating Concept-Verse relationships...")
         concept_count = 0
         for concept_id, mappings in concept_verse_map.items():
             if concept_id.startswith("_"):
@@ -198,32 +233,32 @@ def seed(uri: str, user: str, password: str):
                     cid=concept_id,
                 )
                 concept_count += 1
-        print(f"  Created {concept_count} concept-verse edges")
+        logger.info("  Created %d concept-verse edges", concept_count)
 
         # Concept-Concept relationships
-        print("Creating Concept-Concept relationships...")
+        logger.info("Creating Concept-Concept relationships...")
         for rel in concept_relationships:
             session.run(
                 f"""MATCH (a:Concept {{id: $from_id}}), (b:Concept {{id: $to_id}})
-                    CREATE (a)-[:{rel['type']}]->(b)""",
+                    CREATE (a)-[:{rel["type"]}]->(b)""",
                 from_id=rel["from"],
                 to_id=rel["to"],
             )
-        print(f"  Created {len(concept_relationships)} concept-concept edges")
+        logger.info("  Created %d concept-concept edges", len(concept_relationships))
 
         # Person-Concept relationships
-        print("Creating Person-Concept relationships...")
+        logger.info("Creating Person-Concept relationships...")
         for pcm in person_concept_map:
             session.run(
                 f"""MATCH (p:Person {{id: $pid}}), (c:Concept {{id: $cid}})
-                    CREATE (p)-[:{pcm['type']}]->(c)""",
+                    CREATE (p)-[:{pcm["type"]}]->(c)""",
                 pid=pcm["person"],
                 cid=pcm["concept"],
             )
-        print(f"  Created {len(person_concept_map)} person-concept edges")
+        logger.info("  Created %d person-concept edges", len(person_concept_map))
 
         # Speaker relationships (SPOKEN_BY)
-        print("Creating speaker relationships...")
+        logger.info("Creating speaker relationships...")
         speaker_count = 0
         for verse_id, speaker_id in speaker_map.items():
             session.run(
@@ -233,29 +268,31 @@ def seed(uri: str, user: str, password: str):
                 pid=speaker_id,
             )
             speaker_count += 1
-        print(f"  Created {speaker_count} speaker edges")
+        logger.info("  Created %d speaker edges", speaker_count)
 
         # Summary
         result = session.run(
             "MATCH (n) RETURN labels(n)[0] AS label, count(n) AS count ORDER BY count DESC"
         )
-        print("\nGraph summary:")
+        logger.info("Graph summary:")
         for record in result:
-            print(f"  {record['label']}: {record['count']}")
+            logger.info("  %s: %d", record["label"], record["count"])
 
         result = session.run(
             "MATCH ()-[r]->() RETURN type(r) AS type, count(r) AS count ORDER BY count DESC"
         )
-        print("\nRelationship summary:")
+        logger.info("Relationship summary:")
         for record in result:
-            print(f"  {record['type']}: {record['count']}")
+            logger.info("  %s: %d", record["type"], record["count"])
 
     driver.close()
-    print("\nDone! Knowledge graph seeded successfully.")
+    logger.info("Done! Knowledge graph seeded successfully.")
 
 
 if __name__ == "__main__":
     import sys
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
     from src.config import settings
 

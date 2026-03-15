@@ -21,6 +21,7 @@ COPY services/pipeline/src/ services/pipeline/src/
 ENV DATA_DIR=/app/data
 ENV CHROMA_PERSIST_DIR=/app/data/chroma
 
-EXPOSE 8000
+ENV PORT=8000
+EXPOSE ${PORT}
 
-CMD ["uvicorn", "services.pipeline.src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn services.pipeline.src.api.main:app --host 0.0.0.0 --port ${PORT}

@@ -14,15 +14,14 @@ RUN pip install --no-cache-dir ./services/pipeline
 # Copy pipeline source
 COPY services/pipeline/src/ services/pipeline/src/
 
-# Data is mounted as a volume at runtime — not baked into the image.
-# This keeps the image small and allows data updates without rebuilds.
-# Mount your data/ directory to /app/data when running.
+# Copy processed data needed for ingestion
+COPY data/processed/ data/processed/
 
 ENV DATA_DIR=/app/data
 ENV CHROMA_PERSIST_DIR=/app/data/chroma
 
-# Create data dirs so app doesn't crash before volume is mounted
-RUN mkdir -p /app/data/chroma
+# Run verse ingestion at build time so ChromaDB is ready on startup
+RUN python3 -c "from services.pipeline.src.ingest.load_verses import ingest; ingest()"
 
 ENV PORT=8000
 EXPOSE ${PORT}

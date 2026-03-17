@@ -36,7 +36,7 @@ User Question
       |
       +---> Vector Search (RAG)         --> Relevant verses & passages
       |
-      +---> Knowledge Graph (Neo4j)     --> Related concepts, cross-references,
+      +---> Knowledge Graph (Kùzu)      --> Related concepts, cross-references,
       |                                      schools of thought, lineage
       |
       +---> LLM (Claude)               --> Synthesizes a grounded, cited answer
@@ -51,7 +51,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full technical design.
 | Frontend | Next.js (TypeScript, Tailwind CSS) |
 | Backend | FastAPI (Python) |
 | LLM | Claude API (Anthropic) |
-| Knowledge Graph | Neo4j |
+| Knowledge Graph | Kùzu (embedded) |
 | Vector Store | ChromaDB |
 | Embeddings | MiniLM (local, via ChromaDB) |
 
@@ -62,7 +62,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full technical design.
 - Node.js 20+
 - Python 3.11+
 - npm
-- Docker (for Neo4j)
+- Docker (optional, for containerized deployment)
 
 ### Setup
 
@@ -81,14 +81,11 @@ cd apps/web && npm install && cd ../..
 # Install Python dependencies
 cd services/pipeline && pip install -e ".[dev]" && cd ../..
 
-# Start Neo4j
-docker compose up -d neo4j
-
 # Ingest data into ChromaDB
 python3 -m services.pipeline.src.ingest.load_verses
 
-# Seed knowledge graph (requires Neo4j running)
-python3 -c "from services.pipeline.src.ingest.seed_graph import seed; from services.pipeline.src.config import settings; seed(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)"
+# Seed knowledge graph (Kùzu — embedded, no server needed)
+python3 -c "from services.pipeline.src.ingest.seed_graph import seed; from services.pipeline.src.config import settings; seed(settings.kuzu_db_dir)"
 
 # Run the backend (from project root)
 python3 -m uvicorn services.pipeline.src.api.main:app --reload
@@ -104,7 +101,7 @@ See [.env.example](.env.example) for all required variables:
 - `LLM_PROVIDER` — `bedrock` (AWS) or `anthropic` (direct API)
 - `ANTHROPIC_API_KEY` or `AWS_*` — LLM credentials
 - `VOYAGE_API_KEY` — Voyage AI embedding API key
-- `NEO4J_URI` / `NEO4J_USER` / `NEO4J_PASSWORD` — Neo4j connection
+- `KUZU_DB_DIR` — Kùzu database directory (default: `data/kuzu`)
 - `CORS_ORIGINS` — Comma-separated allowed origins for the API
 - `NEXT_PUBLIC_PIPELINE_URL` — Backend URL for the frontend
 
@@ -120,14 +117,13 @@ See [.env.example](.env.example) for all required variables:
 
 1. Create a new [Railway](https://railway.app) project from the repo
 2. Point to the Dockerfile at `services/pipeline/Dockerfile`
-3. Add a Neo4j service (or use [Neo4j Aura](https://neo4j.com/cloud/aura-free/) free tier)
-4. Set environment variables: API keys, `NEO4J_URI`, `CORS_ORIGINS` (your Vercel URL)
-5. Mount a persistent volume at `/app/data` for ChromaDB
+3. Set environment variables: API keys, `CORS_ORIGINS` (your Vercel URL)
+4. Mount a persistent volume at `/app/data` for ChromaDB and Kùzu
 
 ### Docker Compose (local / self-hosted)
 
 ```bash
-# Start Neo4j + backend
+# Start backend
 docker compose up -d
 
 # Frontend runs separately

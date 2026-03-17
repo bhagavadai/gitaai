@@ -37,7 +37,7 @@ Vedic literature is inherently **relational** — concepts build on each other a
                +--------------+--------------+
                |              |              |
      +---------v---+  +------v------+  +----v--------+
-     |  Weaviate   |  |   Neo4j     |  |  Claude API |
+     |  ChromaDB   |  |   Kùzu      |  |  Claude API |
      |  (Vectors)  |  |   (Graph)   |  |  (LLM)      |
      +-------------+  +-------------+  +-------------+
 ```
@@ -55,7 +55,7 @@ Vedic literature is inherently **relational** — concepts build on each other a
    │   → Top-k verse chunks semantically similar to the query
    │   → Returns: BG 2.20, BG 2.17, BG 2.23, KU 1.2.18...
    │
-   └── Graph Traversal (Neo4j)
+   └── Graph Traversal (Kùzu)
        → Start from entities in query: [Krishna, Self/Atman]
        → Traverse: Krishna -[TEACHES]-> Atman
        → Expand: Atman -[RELATES_TO]-> Brahman, Moksha
@@ -84,7 +84,7 @@ Vedic literature is inherently **relational** — concepts build on each other a
 
 ## Data Model
 
-### Knowledge Graph Schema (Neo4j)
+### Knowledge Graph Schema (Kùzu)
 
 #### Nodes
 
@@ -139,11 +139,12 @@ Class: VerseChunk
 - Cost-effective for an MVP — no GPU infrastructure needed
 - Can switch to self-hosted later if needed
 
-### Why Neo4j (not a simpler graph)?
-- Cypher query language is expressive and well-documented
-- Mature ecosystem, good visualization tools
-- APOC library for advanced graph algorithms
-- Can start with free Community Edition
+### Why Kùzu (not Neo4j or a simpler graph)?
+- Embedded database — no server, no Docker, no auth needed
+- Cypher-compatible query language (easy to learn, well-documented)
+- Zero infrastructure cost — just a local directory
+- Fast in-process queries with no network overhead
+- Schema-first design enforces data integrity
 
 ### Why Weaviate (not Pinecone/ChromaDB)?
 - Hybrid search (vector + keyword) built in
@@ -176,7 +177,7 @@ Class: VerseChunk
 ### Phase 2 — Knowledge Graph Integration
 **Goal:** Richer answers that understand concept relationships.
 
-- [ ] Design and seed Neo4j graph with Gita concepts/relationships
+- [ ] Design and seed Kùzu graph with Gita concepts/relationships
 - [ ] Build graph traversal module
 - [ ] Hybrid retrieval: vector search + graph context
 - [ ] Add Upanishads and Yoga Sutras to corpus
@@ -217,7 +218,7 @@ Class: VerseChunk
 ## Cost Considerations
 
 - Claude API: ~$0.01-0.05 per query (depending on context length)
-- Neo4j: Free Community Edition for development, Aura Free Tier for small production
+- Kùzu: Free and embedded — no hosting cost
 - Weaviate: Self-hosted (free) or Weaviate Cloud (free tier available)
 - Hosting: Vercel free tier (frontend), Railway/Fly.io (backend)
 - Embeddings: ~$0.001 per 1000 tokens (one-time cost for corpus)

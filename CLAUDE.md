@@ -54,7 +54,7 @@ GitaAI is an open-source AI chat interface grounded in the Bhagavad Gita and Ved
 | Styling | Tailwind CSS |
 | Backend API | Next.js API routes + Python (FastAPI) for ML pipeline |
 | LLM | Claude API (Anthropic SDK) |
-| Knowledge Graph | Neo4j |
+| Knowledge Graph | Kùzu (embedded) |
 | Vector Store | Weaviate or ChromaDB |
 | Embeddings | Voyage AI |
 | Database | PostgreSQL (users, sessions, analytics) |

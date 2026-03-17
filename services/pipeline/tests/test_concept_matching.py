@@ -7,7 +7,6 @@ Requires the graph to be seeded before running (data/kuzu/ must exist).
 from __future__ import annotations
 
 import pytest
-
 from services.pipeline.src.graph.traversal import get_concept_context
 
 

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Pre-commit hook: lint staged files before committing.
+# Install: git config core.hooksPath .githooks
+
+set -e
+
+# --- Backend: ruff on staged Python files ---
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM -- 'services/pipeline/src/*.py' 'services/pipeline/tests/*.py')
+if [ -n "$STAGED_PY" ]; then
+    echo "[pre-commit] Running ruff check on staged Python files..."
+    ruff check $STAGED_PY
+    echo "[pre-commit] Running ruff format --check on staged Python files..."
+    ruff format --check $STAGED_PY
+fi
+
+# --- Frontend: next lint on staged TS/TSX files ---
+STAGED_FE=$(git diff --cached --name-only --diff-filter=ACM -- 'apps/web/src/**/*.ts' 'apps/web/src/**/*.tsx')
+if [ -n "$STAGED_FE" ]; then
+    echo "[pre-commit] Running next lint..."
+    (cd apps/web && npx next lint)
+fi
+
+echo "[pre-commit] All checks passed."

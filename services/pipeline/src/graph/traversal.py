@@ -234,10 +234,11 @@ _CONCEPT_ALIASES: dict[str, list[str]] = {
         "serenity", "peaceful", "शान्ति", "शांति",
     ],
     "kama": ["desire", "craving", "lust", "temptation", "काम"],
-    "krodha": ["anger", "rage", "wrath", "angry", "furious", "क्रोध"],
+    "krodha": ["anger", "rage", "wrath", "angry", "furious", "hatred", "क्रोध"],
     "manas": [
         "mind", "mental", "thoughts", "thinking", "restless",
-        "anxiety", "worry", "stress", "fear", "nervous", "मन",
+        "anxiety", "anxious", "worry", "worried", "stress", "stressed",
+        "fear", "fearful", "nervous", "मन",
     ],
     "karuna": ["compassionate", "mercy", "empathy", "care", "करुणा"],
     "ahimsa": [

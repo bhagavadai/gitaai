@@ -332,23 +332,18 @@ def seed(db_path: str):
     speaker_count = 0
     for verse_id, speaker_id in speaker_map.items():
         conn.execute(
-            "MATCH (v:Verse {verse_id: $vid}), (p:Person {id: $pid}) "
-            "CREATE (v)-[:SPOKEN_BY]->(p)",
+            "MATCH (v:Verse {verse_id: $vid}), (p:Person {id: $pid}) CREATE (v)-[:SPOKEN_BY]->(p)",
             parameters={"vid": verse_id, "pid": speaker_id},
         )
         speaker_count += 1
     logger.info("  Created %d speaker edges", speaker_count)
 
     # Summary
-    result = conn.execute(
-        "CALL show_tables() RETURN name, type, comment"
-    ).get_as_df()
+    result = conn.execute("CALL show_tables() RETURN name, type, comment").get_as_df()
     node_tables = result[result["type"].str.upper() == "NODE"]["name"].tolist()
     logger.info("Graph summary:")
     for table_name in node_tables:
-        count_result = conn.execute(
-            f"MATCH (n:{table_name}) RETURN count(n) AS cnt"
-        ).get_as_df()
+        count_result = conn.execute(f"MATCH (n:{table_name}) RETURN count(n) AS cnt").get_as_df()
         logger.info("  %s: %d", table_name, count_result["cnt"][0])
 
     logger.info("Done! Knowledge graph seeded successfully.")

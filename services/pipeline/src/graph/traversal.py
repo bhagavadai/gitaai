@@ -20,7 +20,11 @@ def get_connection() -> kuzu.Connection:
     return _conn
 
 
-def _query_to_dicts(conn: kuzu.Connection, cypher: str, parameters: dict | None = None) -> list[dict]:
+def _query_to_dicts(
+    conn: kuzu.Connection,
+    cypher: str,
+    parameters: dict | None = None,
+) -> list[dict]:
     """Execute a Cypher query and return results as a list of dicts."""
     result = conn.execute(cypher, parameters=parameters or {})
     if not result.has_next():

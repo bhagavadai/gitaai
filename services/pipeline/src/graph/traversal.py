@@ -265,12 +265,13 @@ def _match_concepts_from_query(query: str) -> list[dict]:
     conn = get_connection()
     query_lower = query.lower()
 
-    # Check alias matches (word-boundary aware for single-word aliases)
+    # Check alias matches (word-boundary aware for single-word ASCII aliases,
+    # substring match for multi-word and non-ASCII/Devanagari aliases)
     alias_matched_ids = set()
     query_words = set(re.findall(r"\w+", query_lower))
     for concept_id, aliases in _CONCEPT_ALIASES.items():
         for alias in aliases:
-            if " " in alias:
+            if " " in alias or not alias.isascii():
                 if alias in query_lower:
                     alias_matched_ids.add(concept_id)
                     break

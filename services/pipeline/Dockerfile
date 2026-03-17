@@ -14,14 +14,17 @@ RUN pip install --no-cache-dir ./services/pipeline
 # Copy pipeline source
 COPY services/pipeline/src/ services/pipeline/src/
 
-# Copy processed data needed for ingestion
+# Copy data needed for ingestion
 COPY data/processed/ data/processed/
+COPY data/seed/ data/seed/
 
 ENV DATA_DIR=/app/data
 ENV CHROMA_PERSIST_DIR=/app/data/chroma
+ENV KUZU_DB_DIR=/app/data/kuzu
 
-# Run verse ingestion at build time so ChromaDB is ready on startup
+# Run verse ingestion and graph seeding at build time
 RUN python3 -c "from services.pipeline.src.ingest.load_verses import ingest; ingest()"
+RUN python3 -c "from services.pipeline.src.ingest.seed_graph import seed; seed('/app/data/kuzu')"
 
 ENV PORT=8000
 EXPOSE ${PORT}

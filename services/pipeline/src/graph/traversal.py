@@ -27,10 +27,12 @@ def _query_to_dicts(
 ) -> list[dict]:
     """Execute a Cypher query and return results as a list of dicts."""
     result = conn.execute(cypher, parameters=parameters or {})
-    if not result.has_next():
-        return []
-    df = result.get_as_df()
-    return df.to_dict("records")
+    columns = result.get_column_names()
+    rows = []
+    while result.has_next():
+        values = result.get_next()
+        rows.append(dict(zip(columns, values)))
+    return rows
 
 
 def find_concepts_for_query(query: str) -> list[dict]:

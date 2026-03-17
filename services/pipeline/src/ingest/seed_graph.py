@@ -178,11 +178,15 @@ def seed(db_path: str):
 
     # Drop existing tables (clean slate — rels first, then nodes)
     logger.info("Clearing existing graph data...")
-    tables_df = conn.execute("CALL show_tables() RETURN *").get_as_df()
-    if not tables_df.empty:
-        for t_type in ("REL", "NODE"):
-            for table in tables_df[tables_df["type"] == t_type]["name"].tolist():
-                conn.execute(f"DROP TABLE {table}")
+    tables_result = conn.execute("CALL show_tables() RETURN *")
+    tables = []
+    while tables_result.has_next():
+        row = tables_result.get_next()
+        tables.append({"name": row[1], "type": row[2]})
+    for t_type in ("REL", "NODE"):
+        for t in tables:
+            if t["type"] == t_type:
+                conn.execute(f"DROP TABLE {t['name']}")
 
     _create_schema(conn)
 
@@ -339,12 +343,16 @@ def seed(db_path: str):
     logger.info("  Created %d speaker edges", speaker_count)
 
     # Summary
-    result = conn.execute("CALL show_tables() RETURN name, type, comment").get_as_df()
-    node_tables = result[result["type"].str.upper() == "NODE"]["name"].tolist()
     logger.info("Graph summary:")
-    for table_name in node_tables:
-        count_result = conn.execute(f"MATCH (n:{table_name}) RETURN count(n) AS cnt").get_as_df()
-        logger.info("  %s: %d", table_name, count_result["cnt"][0])
+    tables_result = conn.execute("CALL show_tables() RETURN *")
+    while tables_result.has_next():
+        row = tables_result.get_next()
+        table_name, table_type = row[1], row[2]
+        if table_type != "NODE":
+            continue
+        count_result = conn.execute(f"MATCH (n:{table_name}) RETURN count(n) AS cnt")
+        count_result.has_next()
+        logger.info("  %s: %d", table_name, count_result.get_next()[0])
 
     logger.info("Done! Knowledge graph seeded successfully.")
 

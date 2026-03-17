@@ -4,20 +4,33 @@ from __future__ import annotations
 
 import re
 
-from neo4j import GraphDatabase
+import kuzu
 
 from ..config import settings
 
-_driver = None
+_db = None
+_conn = None
 
 
-def get_driver():
-    global _driver
-    if _driver is None:
-        _driver = GraphDatabase.driver(
-            settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password)
-        )
-    return _driver
+def get_connection() -> kuzu.Connection:
+    global _db, _conn
+    if _db is None:
+        _db = kuzu.Database(settings.kuzu_db_dir)
+        _conn = kuzu.Connection(_db)
+    return _conn
+
+
+def _query_to_dicts(
+    conn: kuzu.Connection,
+    cypher: str,
+    parameters: dict | None = None,
+) -> list[dict]:
+    """Execute a Cypher query and return results as a list of dicts."""
+    result = conn.execute(cypher, parameters=parameters or {})
+    if not result.has_next():
+        return []
+    df = result.get_as_df()
+    return df.to_dict("records")
 
 
 def find_concepts_for_query(query: str) -> list[dict]:
@@ -26,19 +39,19 @@ def find_concepts_for_query(query: str) -> list[dict]:
     Uses case-insensitive matching against concept names, Sanskrit terms,
     and common variations.
     """
-    driver = get_driver()
-    with driver.session() as session:
-        result = session.run(
-            """MATCH (c:Concept)
-               WHERE toLower(c.name) CONTAINS toLower($query)
-                  OR toLower(c.sanskrit_term) CONTAINS toLower($query)
-                  OR toLower(c.id) CONTAINS toLower($query)
-               RETURN c.id AS id, c.name AS name, c.sanskrit_term AS sanskrit_term,
-                      c.category AS category, c.description AS description,
-                      c.description_hindi AS description_hindi""",
-            query=query,
-        )
-        return [dict(record) for record in result]
+    conn = get_connection()
+    rows = _query_to_dicts(
+        conn,
+        "MATCH (c:Concept) "
+        "WHERE lower(c.name) CONTAINS lower($query) "
+        "   OR lower(c.sanskrit_term) CONTAINS lower($query) "
+        "   OR lower(c.id) CONTAINS lower($query) "
+        "RETURN c.id AS id, c.name AS name, c.sanskrit_term AS sanskrit_term, "
+        "       c.category AS category, c.`description` AS `description`, "
+        "       c.description_hindi AS description_hindi",
+        {"query": query},
+    )
+    return rows
 
 
 def expand_concepts(concept_ids: list[str], depth: int = 1) -> dict:
@@ -60,40 +73,52 @@ def expand_concepts(concept_ids: list[str], depth: int = 1) -> dict:
     if not concept_ids:
         return {"related_concepts": [], "key_verses": [], "graph_context": ""}
 
-    driver = get_driver()
-    with driver.session() as session:
-        # Find related concepts (1-hop)
-        related_result = session.run(
-            """UNWIND $ids AS cid
-               MATCH (c:Concept {id: cid})-[r:RELATES_TO|PREREQUISITE]-(related:Concept)
-               WHERE NOT related.id IN $ids
-               RETURN DISTINCT related.id AS id, related.name AS name,
-                      related.sanskrit_term AS sanskrit_term,
-                      related.category AS category,
-                      related.description AS description,
-                      related.description_hindi AS description_hindi,
-                      type(r) AS relationship,
-                      c.name AS from_concept""",
-            ids=concept_ids,
-        )
-        related_concepts = [dict(r) for r in related_result]
+    conn = get_connection()
 
-        # Find key verses that EXPLAIN the concepts (most relevant)
-        explains_result = session.run(
-            """UNWIND $ids AS cid
-               MATCH (v:Verse)-[:EXPLAINS]->(c:Concept {id: cid})
-               RETURN DISTINCT v.verse_id AS verse_id,
-                      v.chapter_number AS chapter_number,
-                      v.verse_number AS verse_number,
-                      c.name AS concept_name,
-                      'explains' AS relationship
-               ORDER BY v.chapter_number, v.verse_number""",
-            ids=concept_ids,
+    # Find related concepts (1-hop via RELATES_TO)
+    related_concepts = []
+    for rel_type in ("RELATES_TO", "PREREQUISITE"):
+        rows = _query_to_dicts(
+            conn,
+            f"MATCH (c:Concept)-[r:{rel_type}]-(related:Concept) "
+            "WHERE c.id IN $ids AND NOT related.id IN $ids "
+            "RETURN DISTINCT related.id AS id, related.name AS name, "
+            "       related.sanskrit_term AS sanskrit_term, "
+            "       related.category AS category, "
+            "       related.`description` AS `description`, "
+            "       related.description_hindi AS description_hindi, "
+            "       c.name AS from_concept",
+            {"ids": concept_ids},
         )
-        key_verses = [dict(r) for r in explains_result]
+        for row in rows:
+            row["relationship"] = rel_type
+        related_concepts.extend(rows)
 
-        # Build a text context for the LLM
-        graph_context = _format_graph_context(concept_ids, related_concepts, session)
+    # Deduplicate by id (keep first occurrence)
+    seen_ids: set[str] = set()
+    unique_related: list[dict] = []
+    for rc in related_concepts:
+        if rc["id"] not in seen_ids:
+            seen_ids.add(rc["id"])
+            unique_related.append(rc)
+    related_concepts = unique_related
+
+    # Find key verses that EXPLAIN the concepts (most relevant)
+    key_verses = _query_to_dicts(
+        conn,
+        "MATCH (v:Verse)-[:EXPLAINS]->(c:Concept) "
+        "WHERE c.id IN $ids "
+        "RETURN v.verse_id AS verse_id, "
+        "       v.chapter_number AS chapter_number, "
+        "       v.verse_number AS verse_number, "
+        "       c.name AS concept_name, "
+        "       'explains' AS relationship "
+        "ORDER BY v.chapter_number, v.verse_number",
+        {"ids": concept_ids},
+    )
+
+    # Build a text context for the LLM
+    graph_context = _format_graph_context(concept_ids, related_concepts, conn)
 
     return {
         "related_concepts": related_concepts,
@@ -108,7 +133,6 @@ def get_concept_context(query: str) -> dict:
 
     Returns the same structure as expand_concepts, plus matched_concepts.
     """
-    # Try to match concepts from the query
     matched = _match_concepts_from_query(query)
 
     if not matched:
@@ -171,7 +195,7 @@ _CONCEPT_ALIASES: dict[str, list[str]] = {
 
 def _match_concepts_from_query(query: str) -> list[dict]:
     """Match concepts from a user query using multiple strategies."""
-    driver = get_driver()
+    conn = get_connection()
     query_lower = query.lower()
 
     # Check alias matches (word-boundary aware for single-word aliases)
@@ -180,78 +204,76 @@ def _match_concepts_from_query(query: str) -> list[dict]:
     for concept_id, aliases in _CONCEPT_ALIASES.items():
         for alias in aliases:
             if " " in alias:
-                # Multi-word aliases: substring match is fine
                 if alias in query_lower:
                     alias_matched_ids.add(concept_id)
                     break
             else:
-                # Single-word aliases: must be a whole word
                 if alias in query_words:
                     alias_matched_ids.add(concept_id)
                     break
 
-    with driver.session() as session:
-        result = session.run(
-            """MATCH (c:Concept)
-               RETURN c.id AS id, c.name AS name,
-                      c.sanskrit_term AS sanskrit_term,
-                      c.category AS category,
-                      c.description AS description,
-                      c.description_hindi AS description_hindi"""
-        )
+    all_concepts = _query_to_dicts(
+        conn,
+        "MATCH (c:Concept) "
+        "RETURN c.id AS id, c.name AS name, "
+        "       c.sanskrit_term AS sanskrit_term, "
+        "       c.category AS category, "
+        "       c.`description` AS `description`, "
+        "       c.description_hindi AS description_hindi",
+    )
 
-        matches = []
-        for record in result:
-            concept = dict(record)
-            name_lower = concept["name"].lower()
-            id_lower = concept["id"].lower()
-            sanskrit = concept["sanskrit_term"].lower()
+    matches = []
+    for concept in all_concepts:
+        name_lower = concept["name"].lower()
+        id_lower = concept["id"].lower()
+        sanskrit = concept["sanskrit_term"].lower()
 
-            # Exact or substring match in query
-            if (
-                name_lower in query_lower
-                or id_lower in query_lower
-                or sanskrit in query_lower
-                or concept["id"] in alias_matched_ids
-            ):
-                matches.append(concept)
+        if (
+            name_lower in query_lower
+            or id_lower in query_lower
+            or sanskrit in query_lower
+            or concept["id"] in alias_matched_ids
+        ):
+            matches.append(concept)
 
     return matches
 
 
-def _format_graph_context(concept_ids: list[str], related_concepts: list[dict], session) -> str:
+def _format_graph_context(
+    concept_ids: list[str], related_concepts: list[dict], conn: kuzu.Connection
+) -> str:
     """Format graph data into a text context for the LLM."""
     parts = []
 
-    # Get the matched concepts
-    result = session.run(
-        """UNWIND $ids AS cid
-           MATCH (c:Concept {id: cid})
-           RETURN c.name AS name, c.sanskrit_term AS sanskrit_term,
-                  c.description AS description""",
-        ids=concept_ids,
+    matched = _query_to_dicts(
+        conn,
+        "MATCH (c:Concept) "
+        "WHERE c.id IN $ids "
+        "RETURN c.name AS name, c.sanskrit_term AS sanskrit_term, "
+        "       c.`description` AS `description`",
+        {"ids": concept_ids},
     )
 
     parts.append("Relevant Gita concepts:")
-    for record in result:
-        parts.append(f"- {record['name']} ({record['sanskrit_term']}): {record['description']}")
+    for row in matched:
+        parts.append(f"- {row['name']} ({row['sanskrit_term']}): {row['description']}")
 
     if related_concepts:
         parts.append("\nRelated concepts:")
-        seen = set()
+        seen: set[str] = set()
         for rc in related_concepts:
             if rc["id"] not in seen:
                 seen.add(rc["id"])
                 parts.append(f"- {rc['name']} ({rc['sanskrit_term']}): {rc['description']}")
 
     # Get who teaches these concepts
-    result = session.run(
-        """UNWIND $ids AS cid
-           MATCH (p:Person)-[:TEACHES]->(c:Concept {id: cid})
-           RETURN DISTINCT p.name AS person, c.name AS concept""",
-        ids=concept_ids,
+    teachings = _query_to_dicts(
+        conn,
+        "MATCH (p:Person)-[:TEACHES]->(c:Concept) "
+        "WHERE c.id IN $ids "
+        "RETURN DISTINCT p.name AS person, c.name AS concept",
+        {"ids": concept_ids},
     )
-    teachings = [dict(r) for r in result]
     if teachings:
         parts.append("\nTeachings:")
         for t in teachings:

@@ -33,12 +33,9 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"
 
-    neo4j_uri: str = "bolt://localhost:7687"
-    neo4j_user: str = "neo4j"
-    neo4j_password: str = ""
-
     data_dir: str = str(_PROJECT_ROOT / "data")
     chroma_persist_dir: str = str(_PROJECT_ROOT / "data" / "chroma")
+    kuzu_db_dir: str = str(_PROJECT_ROOT / "data" / "kuzu")
 
     # Model name (format depends on provider)
     # Groq: "llama-3.3-70b-versatile"

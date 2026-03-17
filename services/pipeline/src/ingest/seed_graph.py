@@ -1,8 +1,8 @@
-"""Seed the Neo4j knowledge graph with Gita data.
+"""Seed the Kùzu knowledge graph with Gita data.
 
-Creates nodes for: Scripture, Chapter, Verse, Concept, Person
-Creates relationships: PART_OF, MENTIONS, EXPLAINS, RELATES_TO,
-                       PREREQUISITE, TEACHES, ASKS_ABOUT, SPOKEN_BY
+Creates node tables: Scripture, Chapter, Verse, Concept, Person
+Creates rel tables: PART_OF, MENTIONS, EXPLAINS, RELATES_TO,
+                    PREREQUISITE, TEACHES, ASKS_ABOUT, SPOKEN_BY
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import json
 import logging
 from pathlib import Path
 
-from neo4j import GraphDatabase
+import kuzu
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +88,80 @@ def load_seed_data():
     )
 
 
-def seed(uri: str, user: str, password: str):
-    """Seed the Neo4j graph with Gita knowledge graph data."""
+def _create_schema(conn: kuzu.Connection):
+    """Create all node and relationship tables."""
+    logger.info("Creating schema...")
+
+    # Node tables
+    conn.execute("""
+        CREATE NODE TABLE Scripture (
+            name STRING,
+            sanskrit_name STRING,
+            tradition STRING,
+            language STRING,
+            chapters INT64,
+            verses INT64,
+            PRIMARY KEY (name)
+        )
+    """)
+    conn.execute("""
+        CREATE NODE TABLE Chapter (
+            number INT64,
+            name STRING,
+            sanskrit_name STRING,
+            name_meaning STRING,
+            verses_count INT64,
+            summary STRING,
+            PRIMARY KEY (number)
+        )
+    """)
+    conn.execute("""
+        CREATE NODE TABLE Verse (
+            verse_id STRING,
+            chapter_number INT64,
+            verse_number INT64,
+            sanskrit STRING,
+            transliteration STRING,
+            PRIMARY KEY (verse_id)
+        )
+    """)
+    conn.execute("""
+        CREATE NODE TABLE Concept (
+            id STRING,
+            name STRING,
+            sanskrit_term STRING,
+            category STRING,
+            `description` STRING,
+            description_hindi STRING,
+            PRIMARY KEY (id)
+        )
+    """)
+    conn.execute("""
+        CREATE NODE TABLE Person (
+            id STRING,
+            name STRING,
+            sanskrit_name STRING,
+            role STRING,
+            `description` STRING,
+            description_hindi STRING,
+            PRIMARY KEY (id)
+        )
+    """)
+
+    # Relationship tables
+    conn.execute("CREATE REL TABLE ChapterPartOf (FROM Chapter TO Scripture)")
+    conn.execute("CREATE REL TABLE VersePartOf (FROM Verse TO Chapter)")
+    conn.execute("CREATE REL TABLE EXPLAINS (FROM Verse TO Concept)")
+    conn.execute("CREATE REL TABLE MENTIONS (FROM Verse TO Concept)")
+    conn.execute("CREATE REL TABLE RELATES_TO (FROM Concept TO Concept)")
+    conn.execute("CREATE REL TABLE PREREQUISITE (FROM Concept TO Concept)")
+    conn.execute("CREATE REL TABLE TEACHES (FROM Person TO Concept)")
+    conn.execute("CREATE REL TABLE ASKS_ABOUT (FROM Person TO Concept)")
+    conn.execute("CREATE REL TABLE SPOKEN_BY (FROM Verse TO Person)")
+
+
+def seed(db_path: str):
+    """Seed the Kùzu graph with Gita knowledge graph data."""
     (
         chapters,
         verses,
@@ -101,191 +173,179 @@ def seed(uri: str, user: str, password: str):
     ) = load_seed_data()
     speaker_map = detect_speakers(verses)
 
-    driver = GraphDatabase.driver(uri, auth=(user, password))
+    db = kuzu.Database(db_path)
+    conn = kuzu.Connection(db)
 
-    with driver.session() as session:
-        # Clear existing data
-        logger.info("Clearing existing graph data...")
-        session.run("MATCH (n) DETACH DELETE n")
+    # Drop existing tables (clean slate — rels first, then nodes)
+    logger.info("Clearing existing graph data...")
+    tables_df = conn.execute("CALL show_tables() RETURN *").get_as_df()
+    if not tables_df.empty:
+        for t_type in ("REL", "NODE"):
+            for table in tables_df[tables_df["type"] == t_type]["name"].tolist():
+                conn.execute(f"DROP TABLE {table}")
 
-        # Create constraints for performance
-        logger.info("Creating constraints...")
-        for label, prop in [
-            ("Scripture", "name"),
-            ("Chapter", "number"),
-            ("Verse", "verse_id"),
-            ("Concept", "id"),
-            ("Person", "id"),
-        ]:
-            session.run(
-                f"CREATE CONSTRAINT IF NOT EXISTS FOR (n:{label}) REQUIRE n.{prop} IS UNIQUE"
-            )
+    _create_schema(conn)
 
-        # Scripture node
-        logger.info("Creating Scripture node...")
-        session.run(
-            """CREATE (:Scripture {
-                name: 'Bhagavad Gita', sanskrit_name: $sn,
-                tradition: 'Hindu', language: 'Sanskrit',
-                chapters: 18, verses: 701
-            })""",
-            sn="भगवद्गीता",
+    # Scripture node
+    logger.info("Creating Scripture node...")
+    conn.execute(
+        "CREATE (:Scripture {name: $name, sanskrit_name: $sn, "
+        "tradition: $tradition, language: $lang, chapters: $ch, verses: $v})",
+        parameters={
+            "name": "Bhagavad Gita",
+            "sn": "भगवद्गीता",
+            "tradition": "Hindu",
+            "lang": "Sanskrit",
+            "ch": 18,
+            "v": 701,
+        },
+    )
+
+    # Chapter nodes
+    logger.info("Creating %d Chapter nodes...", len(chapters))
+    for ch in chapters:
+        conn.execute(
+            "CREATE (:Chapter {number: $num, name: $name, sanskrit_name: $sn, "
+            "name_meaning: $meaning, verses_count: $vc, summary: $summary})",
+            parameters={
+                "num": ch["chapter_number"],
+                "name": ch["name_translation"],
+                "sn": ch["name_sanskrit"],
+                "meaning": ch["name_meaning"],
+                "vc": ch["verses_count"],
+                "summary": ch.get("summary", ""),
+            },
+        )
+        conn.execute(
+            "MATCH (ch:Chapter {number: $num}), (s:Scripture {name: 'Bhagavad Gita'}) "
+            "CREATE (ch)-[:ChapterPartOf]->(s)",
+            parameters={"num": ch["chapter_number"]},
         )
 
-        # Chapter nodes
-        logger.info("Creating %d Chapter nodes...", len(chapters))
-        for ch in chapters:
-            session.run(
-                """CREATE (c:Chapter {
-                    number: $num, name: $name, sanskrit_name: $sn,
-                    name_meaning: $meaning, verses_count: $vc,
-                    summary: $summary
-                })""",
-                num=ch["chapter_number"],
-                name=ch["name_translation"],
-                sn=ch["name_sanskrit"],
-                meaning=ch["name_meaning"],
-                vc=ch["verses_count"],
-                summary=ch.get("summary", ""),
-            )
-            session.run(
-                """MATCH (ch:Chapter {number: $num}), (s:Scripture {name: 'Bhagavad Gita'})
-                   CREATE (ch)-[:PART_OF]->(s)""",
-                num=ch["chapter_number"],
-            )
-
-        # Verse nodes
-        logger.info("Creating %d Verse nodes...", len(verses))
-        batch_size = 100
-        for i in range(0, len(verses), batch_size):
-            batch = verses[i : i + batch_size]
-            for v in batch:
-                session.run(
-                    """CREATE (v:Verse {
-                        verse_id: $vid, chapter_number: $ch, verse_number: $vn,
-                        sanskrit: $sk, transliteration: $tr
-                    })""",
-                    vid=v["id"],
-                    ch=v["chapter_number"],
-                    vn=v["verse_number"],
-                    sk=v["sanskrit"],
-                    tr=v["transliteration"],
-                )
-                session.run(
-                    """MATCH (v:Verse {verse_id: $vid}), (ch:Chapter {number: $ch})
-                       CREATE (v)-[:PART_OF]->(ch)""",
-                    vid=v["id"],
-                    ch=v["chapter_number"],
-                )
-            logger.info("  Inserted verses %d-%d", i + 1, min(i + batch_size, len(verses)))
-
-        # Concept nodes
-        logger.info("Creating %d Concept nodes...", len(concepts))
-        for c in concepts:
-            session.run(
-                """CREATE (:Concept {
-                    id: $id, name: $name, sanskrit_term: $st,
-                    category: $cat, description: $desc, description_hindi: $dh
-                })""",
-                id=c["id"],
-                name=c["name"],
-                st=c["sanskrit_term"],
-                cat=c["category"],
-                desc=c["description"],
-                dh=c["description_hindi"],
-            )
-
-        # Person nodes
-        logger.info("Creating %d Person nodes...", len(persons))
-        for p in persons:
-            session.run(
-                """CREATE (:Person {
-                    id: $id, name: $name, sanskrit_name: $sn,
-                    role: $role, description: $desc, description_hindi: $dh
-                })""",
-                id=p["id"],
-                name=p["name"],
-                sn=p["sanskrit_name"],
-                role=p["role"],
-                desc=p["description"],
-                dh=p["description_hindi"],
-            )
-
-        # Concept-Verse relationships (EXPLAINS and MENTIONS)
-        logger.info("Creating Concept-Verse relationships...")
-        concept_count = 0
-        for concept_id, mappings in concept_verse_map.items():
-            if concept_id.startswith("_"):
-                continue
-            for verse_id in mappings.get("explains", []):
-                session.run(
-                    """MATCH (v:Verse {verse_id: $vid}), (c:Concept {id: $cid})
-                       CREATE (v)-[:EXPLAINS]->(c)""",
-                    vid=verse_id,
-                    cid=concept_id,
-                )
-                concept_count += 1
-            for verse_id in mappings.get("mentions", []):
-                session.run(
-                    """MATCH (v:Verse {verse_id: $vid}), (c:Concept {id: $cid})
-                       CREATE (v)-[:MENTIONS]->(c)""",
-                    vid=verse_id,
-                    cid=concept_id,
-                )
-                concept_count += 1
-        logger.info("  Created %d concept-verse edges", concept_count)
-
-        # Concept-Concept relationships
-        logger.info("Creating Concept-Concept relationships...")
-        for rel in concept_relationships:
-            session.run(
-                f"""MATCH (a:Concept {{id: $from_id}}), (b:Concept {{id: $to_id}})
-                    CREATE (a)-[:{rel["type"]}]->(b)""",
-                from_id=rel["from"],
-                to_id=rel["to"],
-            )
-        logger.info("  Created %d concept-concept edges", len(concept_relationships))
-
-        # Person-Concept relationships
-        logger.info("Creating Person-Concept relationships...")
-        for pcm in person_concept_map:
-            session.run(
-                f"""MATCH (p:Person {{id: $pid}}), (c:Concept {{id: $cid}})
-                    CREATE (p)-[:{pcm["type"]}]->(c)""",
-                pid=pcm["person"],
-                cid=pcm["concept"],
-            )
-        logger.info("  Created %d person-concept edges", len(person_concept_map))
-
-        # Speaker relationships (SPOKEN_BY)
-        logger.info("Creating speaker relationships...")
-        speaker_count = 0
-        for verse_id, speaker_id in speaker_map.items():
-            session.run(
-                """MATCH (v:Verse {verse_id: $vid}), (p:Person {id: $pid})
-                   CREATE (v)-[:SPOKEN_BY]->(p)""",
-                vid=verse_id,
-                pid=speaker_id,
-            )
-            speaker_count += 1
-        logger.info("  Created %d speaker edges", speaker_count)
-
-        # Summary
-        result = session.run(
-            "MATCH (n) RETURN labels(n)[0] AS label, count(n) AS count ORDER BY count DESC"
+    # Verse nodes
+    logger.info("Creating %d Verse nodes...", len(verses))
+    for i, v in enumerate(verses):
+        conn.execute(
+            "CREATE (:Verse {verse_id: $vid, chapter_number: $ch, "
+            "verse_number: $vn, sanskrit: $sk, transliteration: $tr})",
+            parameters={
+                "vid": v["id"],
+                "ch": v["chapter_number"],
+                "vn": v["verse_number"],
+                "sk": v["sanskrit"],
+                "tr": v["transliteration"],
+            },
         )
-        logger.info("Graph summary:")
-        for record in result:
-            logger.info("  %s: %d", record["label"], record["count"])
-
-        result = session.run(
-            "MATCH ()-[r]->() RETURN type(r) AS type, count(r) AS count ORDER BY count DESC"
+        conn.execute(
+            "MATCH (v:Verse {verse_id: $vid}), (ch:Chapter {number: $ch}) "
+            "CREATE (v)-[:VersePartOf]->(ch)",
+            parameters={"vid": v["id"], "ch": v["chapter_number"]},
         )
-        logger.info("Relationship summary:")
-        for record in result:
-            logger.info("  %s: %d", record["type"], record["count"])
+        if (i + 1) % 100 == 0:
+            logger.info("  Inserted verses %d/%d", i + 1, len(verses))
+    logger.info("  Inserted all %d verses", len(verses))
 
-    driver.close()
+    # Concept nodes
+    logger.info("Creating %d Concept nodes...", len(concepts))
+    for c in concepts:
+        conn.execute(
+            "CREATE (:Concept {id: $id, name: $name, sanskrit_term: $st, "
+            "category: $cat, `description`: $desc_val, description_hindi: $dh})",
+            parameters={
+                "id": c["id"],
+                "name": c["name"],
+                "st": c["sanskrit_term"],
+                "cat": c["category"],
+                "desc_val": c["description"],
+                "dh": c["description_hindi"],
+            },
+        )
+
+    # Person nodes
+    logger.info("Creating %d Person nodes...", len(persons))
+    for p in persons:
+        conn.execute(
+            "CREATE (:Person {id: $id, name: $name, sanskrit_name: $sn, "
+            "role: $role, `description`: $desc_val, description_hindi: $dh})",
+            parameters={
+                "id": p["id"],
+                "name": p["name"],
+                "sn": p["sanskrit_name"],
+                "role": p["role"],
+                "desc_val": p["description"],
+                "dh": p["description_hindi"],
+            },
+        )
+
+    # Concept-Verse relationships (EXPLAINS and MENTIONS)
+    logger.info("Creating Concept-Verse relationships...")
+    edge_count = 0
+    for concept_id, mappings in concept_verse_map.items():
+        if concept_id.startswith("_"):
+            continue
+        for verse_id in mappings.get("explains", []):
+            conn.execute(
+                "MATCH (v:Verse {verse_id: $vid}), (c:Concept {id: $cid}) "
+                "CREATE (v)-[:EXPLAINS]->(c)",
+                parameters={"vid": verse_id, "cid": concept_id},
+            )
+            edge_count += 1
+        for verse_id in mappings.get("mentions", []):
+            conn.execute(
+                "MATCH (v:Verse {verse_id: $vid}), (c:Concept {id: $cid}) "
+                "CREATE (v)-[:MENTIONS]->(c)",
+                parameters={"vid": verse_id, "cid": concept_id},
+            )
+            edge_count += 1
+    logger.info("  Created %d concept-verse edges", edge_count)
+
+    # Concept-Concept relationships
+    logger.info("Creating Concept-Concept relationships...")
+    for rel in concept_relationships:
+        rel_type = rel["type"]
+        if rel_type not in ("RELATES_TO", "PREREQUISITE"):
+            logger.warning("  Skipping unknown relationship type: %s", rel_type)
+            continue
+        conn.execute(
+            f"MATCH (a:Concept {{id: $from_id}}), (b:Concept {{id: $to_id}}) "
+            f"CREATE (a)-[:{rel_type}]->(b)",
+            parameters={"from_id": rel["from"], "to_id": rel["to"]},
+        )
+    logger.info("  Created %d concept-concept edges", len(concept_relationships))
+
+    # Person-Concept relationships
+    logger.info("Creating Person-Concept relationships...")
+    for pcm in person_concept_map:
+        rel_type = pcm["type"]
+        if rel_type not in ("TEACHES", "ASKS_ABOUT"):
+            logger.warning("  Skipping unknown relationship type: %s", rel_type)
+            continue
+        conn.execute(
+            f"MATCH (p:Person {{id: $pid}}), (c:Concept {{id: $cid}}) "
+            f"CREATE (p)-[:{rel_type}]->(c)",
+            parameters={"pid": pcm["person"], "cid": pcm["concept"]},
+        )
+    logger.info("  Created %d person-concept edges", len(person_concept_map))
+
+    # Speaker relationships (SPOKEN_BY)
+    logger.info("Creating speaker relationships...")
+    speaker_count = 0
+    for verse_id, speaker_id in speaker_map.items():
+        conn.execute(
+            "MATCH (v:Verse {verse_id: $vid}), (p:Person {id: $pid}) CREATE (v)-[:SPOKEN_BY]->(p)",
+            parameters={"vid": verse_id, "pid": speaker_id},
+        )
+        speaker_count += 1
+    logger.info("  Created %d speaker edges", speaker_count)
+
+    # Summary
+    result = conn.execute("CALL show_tables() RETURN name, type, comment").get_as_df()
+    node_tables = result[result["type"].str.upper() == "NODE"]["name"].tolist()
+    logger.info("Graph summary:")
+    for table_name in node_tables:
+        count_result = conn.execute(f"MATCH (n:{table_name}) RETURN count(n) AS cnt").get_as_df()
+        logger.info("  %s: %d", table_name, count_result["cnt"][0])
+
     logger.info("Done! Knowledge graph seeded successfully.")
 
 
@@ -296,4 +356,4 @@ if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
     from src.config import settings
 
-    seed(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
+    seed(settings.kuzu_db_dir)

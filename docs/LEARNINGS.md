@@ -57,7 +57,7 @@ Issues, debugging insights, and design decisions accumulated during development.
 - **Fix:** Check if the port is already in use with `curl -s http://localhost:8000/health` before starting. Kill existing process with `lsof -ti :8000 | xargs kill` if needed.
 
 ### Graceful degradation for optional services
-- **Insight:** Neo4j may not always be running (dev setup, CI, etc.). The chat endpoint should still work with vector-only search.
+- **Insight:** The knowledge graph (Kùzu) may fail to load (corrupt data, missing dir, etc.). The chat endpoint should still work with vector-only search.
 - **Pattern:** Wrap optional service calls in try/except with empty fallback: `try: graph_result = get_concept_context(msg) except Exception: graph_result = {}`
 
 ## Frontend

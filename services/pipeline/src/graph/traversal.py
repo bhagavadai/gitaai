@@ -156,42 +156,106 @@ def get_concept_context(query: str) -> dict:
 
 # English keyword aliases for concept matching
 _CONCEPT_ALIASES: dict[str, list[str]] = {
-    "atman": ["soul", "self", "spirit", "consciousness", "आत्मा"],
-    "brahman": ["ultimate reality", "absolute", "supreme truth", "cosmic consciousness"],
+    "atman": [
+        "soul", "spirit", "consciousness", "आत्मा",
+        "death", "dying", "afterlife", "immortal", "eternal",
+        "body", "physical",
+    ],
+    "brahman": [
+        "ultimate reality", "absolute", "supreme truth", "cosmic consciousness",
+        "truth", "reality",
+    ],
     "karma": ["action", "deed", "consequence", "cause and effect"],
-    "dharma": ["duty", "righteousness", "moral", "ethics", "right action"],
-    "moksha": ["liberation", "freedom", "salvation", "enlightenment", "मुक्ति"],
-    "bhakti": ["devotion", "devotee", "love of god", "worship"],
+    "dharma": [
+        "duty", "righteousness", "moral", "ethics", "right action",
+        "purpose", "sin", "wrong", "evil",
+        "war", "battle", "fight", "conflict",
+    ],
+    "moksha": [
+        "liberation", "freedom", "salvation", "enlightenment", "मुक्ति",
+        "bliss",
+    ],
+    "bhakti": [
+        "devotion", "devotee", "love of god", "worship",
+        "love", "prayer",
+    ],
     "bhakti_yoga": ["devotional", "path of devotion"],
-    "jnana": ["knowledge", "wisdom", "understanding", "discernment"],
+    "jnana": [
+        "knowledge", "wisdom", "understanding", "discernment",
+        "confused", "confusion", "doubt",
+        "teacher", "guru",
+    ],
     "jnana_yoga": ["path of knowledge", "intellectual"],
     "dhyana": ["meditation", "meditate", "contemplation", "mindfulness"],
     "dhyana_yoga": ["path of meditation"],
     "yoga": ["union", "discipline"],
-    "karma_yoga": ["selfless action", "path of action", "desireless action"],
-    "nishkama_karma": ["desireless", "without attachment", "selfless service"],
+    "karma_yoga": [
+        "selfless action", "path of action", "desireless action",
+        "work", "career", "job",
+    ],
+    "nishkama_karma": [
+        "desireless", "without attachment", "selfless service",
+        "success", "failure", "result", "outcome",
+    ],
     "maya": ["illusion", "delusion", "ignorance", "appearance"],
     "samsara": ["rebirth", "cycle of birth", "reincarnation", "transmigration"],
     "prakriti": ["material nature", "material world", "matter", "primal nature"],
     "purusha": ["supreme spirit", "cosmic self", "witness"],
-    "gunas": ["qualities", "three qualities", "modes of nature"],
-    "sattva": ["goodness", "purity", "harmony", "light"],
-    "rajas": ["passion", "activity", "restlessness", "desire"],
-    "tamas": ["darkness", "inertia", "laziness", "delusion"],
-    "vairagya": ["detachment", "dispassion", "non-attachment", "letting go"],
-    "sthitaprajna": ["steady wisdom", "equanimity", "mental stability", "composure"],
-    "surrender": ["surrender", "give up", "let go", "trust god", "समर्पण"],
-    "shraddha": ["faith", "trust", "belief", "conviction"],
+    "gunas": [
+        "qualities", "three qualities", "modes of nature",
+        "food", "eating", "diet",
+    ],
+    "sattva": ["goodness", "purity", "harmony"],
+    "rajas": ["passion", "activity", "restlessness"],
+    "tamas": ["darkness", "inertia", "laziness"],
+    "vairagya": [
+        "detachment", "dispassion", "non-attachment", "letting go",
+        "grief", "sorrow", "sadness", "suffering", "loss",
+    ],
+    "sthitaprajna": ["steady wisdom", "mental stability", "composure"],
+    "surrender": ["surrender", "trust god", "समर्पण"],
+    "shraddha": ["faith", "belief", "conviction"],
     "ahamkara": ["ego", "pride", "false self", "i-ness"],
-    "buddhi": ["intellect", "intelligence", "discernment", "reason"],
-    "ishvara": ["god", "lord", "supreme", "divine"],
+    "buddhi": ["intellect", "intelligence", "reason"],
+    "ishvara": ["god", "lord", "divine", "creator", "supreme being"],
     "vishvarupa": ["cosmic form", "universal form", "divine vision"],
     "tyaga": ["renunciation", "giving up", "sacrifice of results"],
-    "sannyasa": ["renunciation", "monastic", "ascetic"],
-    "daivi_sampat": ["divine qualities", "virtues", "noble qualities"],
-    "asuri_sampat": ["demonic qualities", "vices", "negative traits"],
+    "sannyasa": ["monastic", "ascetic"],
+    "daivi_sampat": [
+        "divine qualities", "virtues", "noble qualities",
+        "forgiveness", "kindness",
+    ],
+    "asuri_sampat": ["demonic qualities", "vices", "negative traits", "wicked"],
     "avatara": ["incarnation", "avatar", "divine descent"],
-    "yajna": ["sacrifice", "offering", "ritual", "selfless service"],
+    "yajna": ["sacrifice", "offering", "ritual"],
+    # New concepts
+    "shanti": [
+        "peace", "inner peace", "calm", "tranquil", "tranquility",
+        "serenity", "peaceful", "शान्ति", "शांति",
+    ],
+    "kama": ["desire", "craving", "lust", "temptation", "काम"],
+    "krodha": ["anger", "rage", "wrath", "angry", "furious", "क्रोध"],
+    "manas": [
+        "mind", "mental", "thoughts", "thinking", "restless",
+        "anxiety", "worry", "stress", "fear", "nervous", "मन",
+    ],
+    "karuna": ["compassionate", "mercy", "empathy", "care", "करुणा"],
+    "ahimsa": [
+        "non-violence", "nonviolence", "harm", "violence", "hurt",
+        "अहिंसा",
+    ],
+    "abhyasa": [
+        "practice", "discipline", "habit", "consistent", "persistence",
+        "अभ्यास",
+    ],
+    "samata": [
+        "equanimity", "balance", "even-minded",
+        "happiness", "joy", "happy", "समता",
+    ],
+    "prana": [
+        "breath", "breathing", "pranayama", "life force", "vital",
+        "प्राण",
+    ],
 }
 
 

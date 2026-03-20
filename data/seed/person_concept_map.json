@@ -45,5 +45,15 @@
   {"person": "arjuna", "concept": "gunas", "type": "ASKS_ABOUT"},
   {"person": "arjuna", "concept": "vishvarupa", "type": "ASKS_ABOUT"},
   {"person": "arjuna", "concept": "sannyasa", "type": "ASKS_ABOUT"},
-  {"person": "arjuna", "concept": "tyaga", "type": "ASKS_ABOUT"}
+  {"person": "arjuna", "concept": "tyaga", "type": "ASKS_ABOUT"},
+  {"person": "krishna", "concept": "shanti", "type": "TEACHES"},
+  {"person": "krishna", "concept": "kama", "type": "TEACHES"},
+  {"person": "krishna", "concept": "krodha", "type": "TEACHES"},
+  {"person": "krishna", "concept": "manas", "type": "TEACHES"},
+  {"person": "krishna", "concept": "karuna", "type": "TEACHES"},
+  {"person": "krishna", "concept": "ahimsa", "type": "TEACHES"},
+  {"person": "krishna", "concept": "abhyasa", "type": "TEACHES"},
+  {"person": "krishna", "concept": "samata", "type": "TEACHES"},
+  {"person": "krishna", "concept": "prana", "type": "TEACHES"},
+  {"person": "arjuna", "concept": "manas", "type": "ASKS_ABOUT"}
 ]

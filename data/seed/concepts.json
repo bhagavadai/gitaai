@@ -294,5 +294,77 @@
     "category": "practice",
     "description": "Sacrifice and offering; selfless action dedicated to the divine or for the welfare of all",
     "description_hindi": "यज्ञ और अर्पण; ईश्वर को समर्पित या सबके कल्याण के लिए निस्वार्थ कर्म"
+  },
+  {
+    "id": "shanti",
+    "name": "Shanti",
+    "sanskrit_term": "शान्ति",
+    "category": "goal",
+    "description": "Peace; inner tranquility attained through self-knowledge, detachment, and surrender to the divine",
+    "description_hindi": "शान्ति; आत्मज्ञान, वैराग्य और ईश्वर को समर्पण से प्राप्त आंतरिक शांति"
+  },
+  {
+    "id": "kama",
+    "name": "Kama",
+    "sanskrit_term": "काम",
+    "category": "psychology",
+    "description": "Desire and craving; the driving force behind attachment that Krishna identifies as the great enemy of the soul",
+    "description_hindi": "काम और तृष्णा; आसक्ति की प्रेरक शक्ति जिसे कृष्ण आत्मा का महान शत्रु बताते हैं"
+  },
+  {
+    "id": "krodha",
+    "name": "Krodha",
+    "sanskrit_term": "क्रोध",
+    "category": "psychology",
+    "description": "Anger; born from unfulfilled desire, it clouds judgment and leads to delusion and spiritual ruin",
+    "description_hindi": "क्रोध; अपूर्ण इच्छा से उत्पन्न, यह विवेक को ढक लेता है और भ्रम व आध्यात्मिक पतन की ओर ले जाता है"
+  },
+  {
+    "id": "manas",
+    "name": "Manas",
+    "sanskrit_term": "मनस्",
+    "category": "psychology",
+    "description": "The mind; can be one's best friend or worst enemy depending on whether it is controlled or unrestrained",
+    "description_hindi": "मन; नियंत्रित हो तो सबसे अच्छा मित्र, अनियंत्रित हो तो सबसे बड़ा शत्रु"
+  },
+  {
+    "id": "karuna",
+    "name": "Karuna",
+    "sanskrit_term": "करुणा",
+    "category": "ethics",
+    "description": "Compassion; tender care for all beings, listed among the divine qualities that lead to liberation",
+    "description_hindi": "करुणा; सभी प्राणियों के प्रति कोमल देखभाल, मुक्ति की ओर ले जाने वाले दैवी गुणों में से एक"
+  },
+  {
+    "id": "ahimsa",
+    "name": "Ahimsa",
+    "sanskrit_term": "अहिंसा",
+    "category": "ethics",
+    "description": "Non-violence; restraint from causing harm to any living being in thought, word, and deed",
+    "description_hindi": "अहिंसा; विचार, वाणी और कर्म से किसी भी प्राणी को हानि न पहुँचाना"
+  },
+  {
+    "id": "abhyasa",
+    "name": "Abhyasa",
+    "sanskrit_term": "अभ्यास",
+    "category": "practice",
+    "description": "Repeated practice; persistent effort and discipline through which the restless mind is brought under control",
+    "description_hindi": "अभ्यास; निरंतर प्रयास और अनुशासन जिससे चंचल मन को वश में किया जाता है"
+  },
+  {
+    "id": "samata",
+    "name": "Samata",
+    "sanskrit_term": "समता",
+    "category": "ideal",
+    "description": "Equanimity; evenness of mind in success and failure, pleasure and pain — Krishna calls this the essence of yoga",
+    "description_hindi": "समता; सफलता-असफलता, सुख-दुख में मन की समानता — कृष्ण इसे योग का सार कहते हैं"
+  },
+  {
+    "id": "prana",
+    "name": "Prana",
+    "sanskrit_term": "प्राण",
+    "category": "metaphysics",
+    "description": "Life force; the vital breath and energy that sustains all living beings",
+    "description_hindi": "प्राण; जीवन शक्ति और ऊर्जा जो सभी प्राणियों को जीवित रखती है"
   }
 ]
